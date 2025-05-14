@@ -1,0 +1,132 @@
+type User {
+    id: ID!
+    githubUsername: String!
+    name: String
+    email: String
+    avatarUrl: String
+    bio: String
+    followersCount: Int
+    followingCount: Int
+    publicReposCount: Int
+    totalContributions: Int
+    lastUpdated: String
+    lastRefreshed: String
+    repositories: [Repository!]
+    contributions: [Contribution!]
+    contributionCalendar: ContributionCalendar
+}
+
+type SuggestedUser {
+    id: ID!
+    githubUsername: String!
+    name: String
+    email: String
+    avatarUrl: String
+    bio: String
+    followersCount: Int
+    followingCount: Int
+    publicReposCount: Int
+    totalContributions: Int
+    lastRefreshed: String
+    repositories: [Repository!]
+    contributions: [Contribution!]
+    suggestedBy: String
+    suggestedAt: String
+    active: Boolean
+}
+
+type Repository {
+    id: ID!
+    name: String!
+    description: String
+    language: String
+    stargazerCount: Int
+    forkCount: Int
+    isPrivate: Boolean!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Contribution {
+    id: ID!
+    date: String!
+    count: Int!
+    type: ContributionType!
+}
+
+enum ContributionType {
+    COMMIT
+    PULL_REQUEST
+    ISSUE
+    CODE_REVIEW
+}
+
+type Query {
+    user(username: String!): User
+    users(limit: Int, offset: Int): [User!]!
+    searchUsers(query: String!, limit: Int, offset: Int): [User!]!
+    rateLimit: RateLimit!
+    suggestedUsers: [SuggestedUser!]!
+    contributionsTimeSeries(
+        username: String!, 
+        timeFrame: TimeFrame!, 
+        startDate: String, 
+        endDate: String, 
+        contributionTypes: [ContributionType!]
+    ): ContributionTimeSeries!
+}
+
+type Mutation {
+    suggestUser(githubUsername: String!, suggestedBy: String!): SuggestedUser
+    refreshUserData(githubUsername: String!): SuggestedUser
+    deactivateSuggestedUser(id: ID!): Boolean
+}
+
+type RateLimit {
+    limit: Int!
+    remaining: Int!
+    resetAt: String!
+}
+
+type ContributionCalendar {
+    totalContributions: Int!
+    weeks: [ContributionWeek!]!
+}
+
+type ContributionWeek {
+    firstDay: String!
+    contributionDays: [ContributionDay!]!
+}
+
+type ContributionDay {
+    date: String!
+    contributionCount: Int!
+    contributionLevel: ContributionLevel!
+}
+
+enum ContributionLevel {
+    NONE
+    FIRST_QUARTILE
+    SECOND_QUARTILE
+    THIRD_QUARTILE
+    FOURTH_QUARTILE
+}
+
+type TimeSeriesDataPoint {
+    date: String!
+    count: Int!
+}
+
+type ContributionTimeSeries {
+    points: [TimeSeriesDataPoint!]!
+    totalCount: Int!
+    periodStart: String!
+    periodEnd: String!
+}
+
+enum TimeFrame {
+    DAILY
+    WEEKLY
+    MONTHLY
+    YEARLY
+}

@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "@radix-ui/react-dialog": "^1.1.13",
+    "@types/express": "^5.0.1",
+    "@types/sequelize": "^4.28.20",
+    "chart.js": "^4.4.9",
+    "express": "^5.1.0",
+    "pg": "^8.15.6",
+    "pg-hstore": "^2.3.4",
+    "react-chartjs-2": "^5.3.0",
+    "sequelize": "^6.37.7"
+  }
+}
