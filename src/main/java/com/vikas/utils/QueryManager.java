@@ -156,4 +156,62 @@ public class QueryManager {
                       }
             """;
     }
+
+    public String getCodeMetrics() {
+        return """
+              query($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
+                  edges {
+                  size
+                  node {
+                    name
+                  }
+                  }
+                  totalSize
+                }
+                object(expression: "HEAD") {
+                  ... on Tree {
+                  entries {
+                    type
+                    name
+                    object {
+                    ... on Tree {
+                      entries {
+                      type
+                      name
+                      object {
+                        ... on Tree {
+                        entries {
+                          type
+                          name
+                          object {
+                          ... on Tree {
+                            entries {
+                            type
+                            name
+                            object {
+                              ... on Tree {
+                              entries {
+                                type
+                                name
+                              }
+                              }
+                            }
+                            }
+                          }
+                          }
+                        }
+                        }
+                      }
+                      }
+                    }
+                    }
+                  }
+                  }
+                }
+                }
+              }
+                """;
+    }
 }

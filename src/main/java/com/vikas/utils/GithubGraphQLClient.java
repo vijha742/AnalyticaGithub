@@ -1,14 +1,14 @@
 package com.vikas.utils;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Component
 public class GithubGraphQLClient {
@@ -51,5 +51,25 @@ public class GithubGraphQLClient {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public int getTotalFiles(String owner, String repo) {
+        String url = String.format("https://api.github.com/repos/%s/%s/git/trees/HEAD?recursive=1", owner, repo);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + githubToken);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange( url, HttpMethod.GET, requestEntity, Map.class);
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            List<Map<String, Object>> tree = (List<Map<String, Object>>) response.getBody().get("tree");
+
+            if (tree == null) return 0;
+            return (int) tree.stream()
+                    .filter(entry -> "blob".equals(entry.get("type")))
+                    .count();
+        }
+        return 0;
     }
 }

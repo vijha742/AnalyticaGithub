@@ -1,7 +1,7 @@
 package com.vikas.controller;
 
+import com.vikas.model.CodeMetrics;
 import com.vikas.model.ReadmeQuality;
-import com.vikas.model.timeseries.ContributionCalendar;
 import com.vikas.service.GitHubService;
 import com.vikas.service.impl.RepositoryAnalyticsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +30,7 @@ public class UserController {
 
     @GetMapping("/test")
     public ResponseEntity<?> test() {
-        ReadmeQuality data =  analyticsService.analyzeReadmeQuality("vijha742", "Analytica_frontend", "README.md");
+        CodeMetrics data =  analyticsService.getCodeMetrics("vijha742", "Analytica_frontend");
         if(data != null) {
             return ResponseEntity.ok(data);
         } else return ResponseEntity.notFound().build();
