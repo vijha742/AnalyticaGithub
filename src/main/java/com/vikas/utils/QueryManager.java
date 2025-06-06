@@ -130,4 +130,30 @@ public class QueryManager {
                }
                """;
     }
+
+    public String analyzeReadmeQuality() {
+        return """            
+             query($owner: String!, $name: String!) {
+                        repository(owner: $owner, name: $name) {
+                          object(expression: "HEAD:README.md") {
+                            ... on Blob {
+                              text
+                              commitUrl
+                            }
+                          }
+                          defaultBranchRef {
+                            target {
+                              ... on Commit {
+                                history(path: "README.md") {
+                                  nodes {
+                                    committedDate
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+            """;
+    }
 }

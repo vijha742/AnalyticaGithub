@@ -1,14 +1,13 @@
 package com.vikas.service.impl;
 
+import com.vikas.model.ReadmeQuality;
 import com.vikas.model.timeseries.ContributionCalendar;
 import com.vikas.model.timeseries.ContributionWeek;
 import com.vikas.model.timeseries.ContributionDay;
 import com.vikas.service.AnalyticsService;
 import com.vikas.utils.GithubGraphQLClient;
 import com.vikas.utils.QueryManager;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +23,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         this.gitHubClient = gitHubClient;
     }
 
+    // TODO: Make changes so that user can define the time for which he wants to get the data.
     @Override
     public ContributionCalendar getContributionCalendar(String username) {
         Map<String, String> variables = Map.of("username", username);
@@ -53,8 +53,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     ContributionDay day = new ContributionDay();
                     day.setDate((String) dayData.get("date"));
                     day.setContributionCount((Integer) dayData.get("contributionCount"));
-
-                    String level = (String) dayData.get("contributionLevel");
                     days.add(day);
                 }
                 week.setContributionDays(days);
@@ -64,6 +62,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
         return calendar;
     }
+
 
 
 }

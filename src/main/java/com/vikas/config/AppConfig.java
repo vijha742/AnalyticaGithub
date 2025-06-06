@@ -1,5 +1,6 @@
 package com.vikas.config;
 
+import lombok.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -12,9 +13,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+
+
+
 @Configuration
 @EnableScheduling
 public class AppConfig {
+
 
     @Bean
     public RestTemplate restTemplate() {

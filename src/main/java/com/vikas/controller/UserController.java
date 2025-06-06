@@ -1,24 +1,22 @@
 package com.vikas.controller;
 
+import com.vikas.model.ReadmeQuality;
 import com.vikas.model.timeseries.ContributionCalendar;
 import com.vikas.service.GitHubService;
-import com.vikas.service.impl.AnalyticsServiceImpl;
-import com.vikas.utils.GithubGraphQLClient;
-import com.vikas.utils.QueryManager;
+import com.vikas.service.impl.RepositoryAnalyticsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
     private final GitHubService gitHubService;
-    private final AnalyticsServiceImpl analyticsService;
+    private final RepositoryAnalyticsServiceImpl analyticsService;
 
     @Autowired
-    public UserController(GitHubService gitHubService, AnalyticsServiceImpl analyticsService) {
+    public UserController(GitHubService gitHubService, RepositoryAnalyticsServiceImpl analyticsService) {
         this.gitHubService = gitHubService;
         this.analyticsService = analyticsService;
     }
@@ -32,7 +30,7 @@ public class UserController {
 
     @GetMapping("/test")
     public ResponseEntity<?> test() {
-        ContributionCalendar data =  analyticsService.getContributionCalendar("vijha742");
+        ReadmeQuality data =  analyticsService.analyzeReadmeQuality("vijha742", "Analytica_frontend", "README.md");
         if(data != null) {
             return ResponseEntity.ok(data);
         } else return ResponseEntity.notFound().build();
