@@ -1,12 +1,15 @@
 package com.vikas.model;
 
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.Setter;
-import java.time.Instant;
-import java.util.List;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -41,11 +44,11 @@ public class SuggestedUser {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<GithubUser.Repository> repositories;
+    private List<Repository> repositories;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<GithubUser.Contribution> contributions;
+    private List<Contribution> contributions;
 
     private Instant lastRefreshed;
 
@@ -54,3 +57,4 @@ public class SuggestedUser {
         suggestedAt = Instant.now();
     }
 }
+

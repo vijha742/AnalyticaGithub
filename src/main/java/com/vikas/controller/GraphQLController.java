@@ -44,14 +44,15 @@ public class GraphQLController {
         return gitHubService.searchUsers(query, limit != null ? limit : 10, offset != null ? offset : 0);
     }
 
-    @QueryMapping
-    public RateLimit rateLimit() {
-        return new RateLimit(
-            gitHubService.getRemainingRateLimit(),
-            5000, // TODO: Get from configuration
-            "2024-03-20T00:00:00Z" // TODO: Calculate reset time
-        );
-    }
+    // TODO: Implement Ratelimit query..
+//    @QueryMapping
+//    public RateLimit rateLimit() {
+//        return new RateLimit(
+//            gitHubService.getRemainingRateLimit(),
+//            5000, // TODO: Get from configuration
+//            "2024-03-20T00:00:00Z" // TODO: Calculate reset time
+//        );
+//    }
 
     @MutationMapping
     public SuggestedUser suggestUser(@Argument String githubUsername, @Argument String suggestedBy) {

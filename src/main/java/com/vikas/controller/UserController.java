@@ -22,8 +22,8 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/rate-limit")
-    public ResponseEntity<?> getRateLimit() {
-        return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
-    }
+//    @GetMapping("/rate-limit")
+//    public ResponseEntity<?> getRateLimit() {
+//        return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
+//    }
 } 

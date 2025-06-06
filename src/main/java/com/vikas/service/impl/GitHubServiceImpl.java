@@ -1,10 +1,13 @@
 package com.vikas.service.impl;
 
+import com.vikas.model.Contribution;
 import com.vikas.model.GithubUser;
+import com.vikas.model.Repository;
 import com.vikas.model.timeseries.TimeFrame;
 import com.vikas.service.GitHubService;
 import com.vikas.dto.GitHubUserResponse;
 import com.vikas.dto.GitHubSearchResponse;
+import com.vikas.utils.QueryManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,9 +18,9 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAdjusters;
+
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @Service
 public class GitHubServiceImpl implements GitHubService {
@@ -29,67 +32,22 @@ public class GitHubServiceImpl implements GitHubService {
     private String githubToken;
 
     private final RestTemplate restTemplate;
-    private int remainingRateLimit = 5000;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
+    private final QueryManager queryHub;
 
     public GitHubServiceImpl(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+        this.queryHub = new QueryManager();
     }
 
     @Override
     public Optional<GithubUser> fetchUserData(String githubUsername) {
         try {
-            String query = """
-                query($username: String!) {
-                    user(login: $username) {
-                        id
-                        login
-                        name
-                        email
-                        avatarUrl
-                        bio
-                        followers {
-                            totalCount
-                        }
-                        following {
-                            totalCount
-                        }
-                        repositories(first: 100) {
-                            totalCount
-                            nodes {
-                                id
-                                name
-                                description
-                                primaryLanguage {
-                                    name
-                                }
-                                stargazerCount
-                                forkCount
-                                isPrivate
-                                createdAt
-                                updatedAt
-                            }
-                        }
-                        contributionsCollection {
-                            totalCommitContributions
-                            totalPullRequestContributions
-                            totalIssueContributions
-                            totalRepositoryContributions
-                        }
-                    }
-                    rateLimit {
-                        limit
-                        remaining
-                        resetAt
-                    }
-                }
-                """;
-
             Map<String, Object> variables = new HashMap<>();
             variables.put("username", githubUsername);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", query);
+            requestBody.put("query", queryHub.fetchUserData());
             requestBody.put("variables", variables);
 
             HttpHeaders headers = new HttpHeaders();
@@ -110,10 +68,6 @@ public class GitHubServiceImpl implements GitHubService {
                 GitHubUserResponse.User gitHubUser = data.getUser();
                 GitHubUserResponse.RateLimit rateLimit = data.getRateLimit();
 
-                // Update rate limit
-                remainingRateLimit = rateLimit.getRemaining();
-
-                // Map GitHub user to our GithubUser entity
                 GithubUser user = new GithubUser();
                 user.setId(gitHubUser.getId());
                 user.setGithubUsername(gitHubUser.getLogin());
@@ -125,34 +79,34 @@ public class GitHubServiceImpl implements GitHubService {
                 user.setFollowingCount(gitHubUser.getFollowing().getTotalCount());
                 user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
 
-                // Map repositories
-                List<GithubUser.Repository> repositories = new ArrayList<>();
+                user.setLastUpdated(Instant.now());
+
+                List<Repository> repositories = new ArrayList<>();
                 if (gitHubUser.getRepositories() != null && gitHubUser.getRepositories().getNodes() != null) {
                     for (GitHubUserResponse.Repository repo : gitHubUser.getRepositories().getNodes()) {
-                        repositories.add(mapRepository(repo));
+                        Repository mappedRepo = mapRepository(repo);
                     }
                 }
                 user.setRepositories(repositories);
 
-                // Map contributions
-                List<GithubUser.Contribution> contributions = new ArrayList<>();
+                List<Contribution> contributions = new ArrayList<>();
                 GitHubUserResponse.ContributionsCollection contributionsCollection = gitHubUser.getContributionsCollection();
                 if (contributionsCollection != null) {
-                    GithubUser.Contribution commitContribution = new GithubUser.Contribution();
+                    Contribution commitContribution = new Contribution();
                     commitContribution.setId("commit_" + gitHubUser.getId());
                     commitContribution.setDate(Instant.now());
                     commitContribution.setCount(contributionsCollection.getTotalCommitContributions());
                     commitContribution.setType("COMMIT");
                     contributions.add(commitContribution);
 
-                    GithubUser.Contribution prContribution = new GithubUser.Contribution();
+                    Contribution prContribution = new Contribution();
                     prContribution.setId("pr_" + gitHubUser.getId());
                     prContribution.setDate(Instant.now());
                     prContribution.setCount(contributionsCollection.getTotalPullRequestContributions());
                     prContribution.setType("PULL_REQUEST");
                     contributions.add(prContribution);
 
-                    GithubUser.Contribution issueContribution = new GithubUser.Contribution();
+                    Contribution issueContribution = new Contribution();
                     issueContribution.setId("issue_" + gitHubUser.getId());
                     issueContribution.setDate(Instant.now());
                     issueContribution.setCount(contributionsCollection.getTotalIssueContributions());
@@ -176,15 +130,6 @@ public class GitHubServiceImpl implements GitHubService {
         // TODO: Implement user data update logic using GraphQL mutations
     }
 
-    @Override
-    public boolean isRateLimitExceeded() {
-        return remainingRateLimit <= 0;
-    }
-
-    @Override
-    public int getRemainingRateLimit() {
-        return remainingRateLimit;
-    }
 
     @Override
     public List<GithubUser> searchUsers(String query, int limit, int offset) {
@@ -218,8 +163,16 @@ public class GitHubServiceImpl implements GitHubService {
                                         stargazerCount
                                         forkCount
                                         isPrivate
+                                        viewerCanAdminister
                                         createdAt
                                         updatedAt
+                                        repositoryTopics(first: 100) {
+                                            nodes {
+                                                topic {
+                                                    name
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -264,7 +217,7 @@ public class GitHubServiceImpl implements GitHubService {
                     user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
 
                     // Map repositories
-                    List<GithubUser.Repository> repositories = new ArrayList<>();
+                    List<Repository> repositories = new ArrayList<>();
                     if (gitHubUser.getRepositories() != null && gitHubUser.getRepositories().getNodes() != null) {
                         for (GitHubSearchResponse.Repository repo : gitHubUser.getRepositories().getNodes()) {
                             repositories.add(mapRepository(repo));
@@ -315,9 +268,9 @@ public class GitHubServiceImpl implements GitHubService {
                     GitHubUserResponse.class
             ).getBody();
 
-            return response != null && 
-                   response.getData() != null && 
-                   response.getData().getUser() != null;
+            return response != null &&
+                    response.getData() != null &&
+                    response.getData().getUser() != null;
         } catch (Exception e) {
             return false;
         }
@@ -327,66 +280,82 @@ public class GitHubServiceImpl implements GitHubService {
     public GithubUser refreshUserData(String githubUsername) {
         Optional<GithubUser> userData = fetchUserData(githubUsername);
         if (userData.isPresent()) {
-            GithubUser user = userData.get();
-            return user;
+            return userData.get();
         }
         throw new RuntimeException("Failed to refresh user data for: " + githubUsername);
     }
 
+
     @Override
-    public Map<LocalDate, Integer> getContributionTimeSeries(String username, String timeFrame, 
-                                                            LocalDate startDate, LocalDate endDate, 
-                                                            List<String> contributionTypes) {
-        // Get the user's contributions
+    public Map<LocalDate, Integer> getContributionTimeSeries(String username, String timeFrame,
+                                                             LocalDate startDate, LocalDate endDate,
+                                                             List<String> contributionTypes) {
         Optional<GithubUser> userOptional = fetchUserData(username);
         if (userOptional.isEmpty()) {
-            return Map.of(); // Return empty map if user not found
+            return Map.of();
         }
 
         GithubUser user = userOptional.get();
-        List<GithubUser.Contribution> contributions = user.getContributions();
-        
+        List<Contribution> contributions = user.getContributions();
+
         if (contributions == null || contributions.isEmpty()) {
-            return Map.of(); // Return empty map if no contributions
+            return Map.of();
         }
 
-        // Filter by contribution types if specified
-        List<GithubUser.Contribution> filteredContributions = contributions;
+        List<Contribution> filteredContributions = contributions;
         if (contributionTypes != null && !contributionTypes.isEmpty()) {
             filteredContributions = contributions.stream()
-                .filter(c -> contributionTypes.contains(c.getType()))
-                .toList();
+                    .filter(c -> contributionTypes.contains(c.getType()))
+                    .toList();
         }
 
-        // Convert Instant dates to LocalDate
+        // Use default date range if not provided
+        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().minusYears(1);
+        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+
+        // Validate date range
+        if (effectiveStartDate.isAfter(effectiveEndDate) || effectiveStartDate.isAfter(LocalDate.now())) {
+            return Map.of();
+        }
+
+        // Convert Instant dates to LocalDate and aggregate
         Map<LocalDate, Integer> contributionsByDate = new HashMap<>();
-        
-        for (GithubUser.Contribution contribution : filteredContributions) {
+
+        // Initialize all dates in range with 0
+        LocalDate current = effectiveStartDate;
+        while (!current.isAfter(effectiveEndDate)) {
+            contributionsByDate.put(current, 0);
+            current = switch(TimeFrame.valueOf(timeFrame.toUpperCase())) {
+                case DAILY -> current.plusDays(1);
+                case WEEKLY -> current.plusWeeks(1);
+                case MONTHLY -> current.plusMonths(1);
+                case YEARLY -> current.plusYears(1);
+            };
+        }
+
+        // Add contribution counts
+        for (Contribution contribution : filteredContributions) {
             LocalDate date = contribution.getDate().atZone(java.time.ZoneOffset.UTC).toLocalDate();
-            
-            // Skip if outside requested date range
-            if ((startDate != null && date.isBefore(startDate)) || 
-                (endDate != null && date.isAfter(endDate))) {
+
+            if (date.isBefore(effectiveStartDate) || date.isAfter(effectiveEndDate)) {
                 continue;
             }
-            
-            // Aggregate by the appropriate time frame
+
             LocalDate aggregationKey = switch(TimeFrame.valueOf(timeFrame.toUpperCase())) {
                 case DAILY -> date;
                 case WEEKLY -> date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                 case MONTHLY -> date.withDayOfMonth(1);
                 case YEARLY -> date.withDayOfYear(1);
             };
-            
-            // Add to the map with aggregation
+
             contributionsByDate.merge(aggregationKey, contribution.getCount(), Integer::sum);
         }
-        
+
         return contributionsByDate;
     }
 
-    private GithubUser.Repository mapRepository(GitHubUserResponse.Repository repo) {
-        GithubUser.Repository mappedRepo = new GithubUser.Repository();
+    private Repository mapRepository(GitHubUserResponse.Repository repo) {
+        Repository mappedRepo = new Repository();
         mappedRepo.setId(repo.getId());
         mappedRepo.setName(repo.getName());
         mappedRepo.setDescription(repo.getDescription());
@@ -396,11 +365,21 @@ public class GitHubServiceImpl implements GitHubService {
         mappedRepo.setIsPrivate(repo.isPrivate());
         mappedRepo.setCreatedAt(Instant.parse(repo.getCreatedAt()));
         mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
+
+        // Map topics
+//        if (repo.getRepositoryTopics() != null && repo.getRepositoryTopics().getNodes() != null) {
+//            mappedRepo.setTopics(repo.getRepositoryTopics().getNodes().stream()
+//                    .map(node -> node.getTopic().getName())
+//                    .collect(Collectors.toList()));
+//        } else {
+//            mappedRepo.setTopics(new ArrayList<>());
+//        }
+
         return mappedRepo;
     }
 
-    private GithubUser.Repository mapRepository(GitHubSearchResponse.Repository repo) {
-        GithubUser.Repository mappedRepo = new GithubUser.Repository();
+    private Repository mapRepository(GitHubSearchResponse.Repository repo) {
+        Repository mappedRepo = new Repository();
         mappedRepo.setId(repo.getId());
         mappedRepo.setName(repo.getName());
         mappedRepo.setDescription(repo.getDescription());
@@ -410,6 +389,7 @@ public class GitHubServiceImpl implements GitHubService {
         mappedRepo.setIsPrivate(repo.isPrivate());
         mappedRepo.setCreatedAt(Instant.parse(repo.getCreatedAt()));
         mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
+//        mappedRepo.setTopics(new ArrayList<>());
         return mappedRepo;
     }
 }
