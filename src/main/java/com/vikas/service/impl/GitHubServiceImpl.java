@@ -134,59 +134,12 @@ public class GitHubServiceImpl implements GitHubService {
     @Override
     public List<GithubUser> searchUsers(String query, int limit, int offset) {
         try {
-            String searchQuery = """
-                query($query: String!, $first: Int!, $after: String) {
-                    search(query: $query, type: USER, first: $first, after: $after) {
-                        nodes {
-                            ... on User {
-                                id
-                                login
-                                name
-                                email
-                                avatarUrl
-                                bio
-                                followers {
-                                    totalCount
-                                }
-                                following {
-                                    totalCount
-                                }
-                                repositories(first: 100) {
-                                    totalCount
-                                    nodes {
-                                        id
-                                        name
-                                        description
-                                        primaryLanguage {
-                                            name
-                                        }
-                                        stargazerCount
-                                        forkCount
-                                        isPrivate
-                                        viewerCanAdminister
-                                        createdAt
-                                        updatedAt
-                                        repositoryTopics(first: 100) {
-                                            nodes {
-                                                topic {
-                                                    name
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                """;
-
             Map<String, Object> variables = new HashMap<>();
             variables.put("query", query);
             variables.put("first", limit);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", searchQuery);
+            requestBody.put("query", queryHub.searchUsers());
             requestBody.put("variables", variables);
 
             HttpHeaders headers = new HttpHeaders();

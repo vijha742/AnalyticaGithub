@@ -12,17 +12,14 @@ import java.util.Map;
 
 @Component
 public class GithubGraphQLClient {
-
-    @Value("${github.api.graphql-url}")
-    private String githubGraphqlUrl;
-
-    @Value("${github.api.token}")
-    private String githubToken;
-
+    private final String githubGraphqlUrl;
+    private final String githubToken;
     private final RestTemplate restTemplate;
 
-    public GithubGraphQLClient(RestTemplate restTemplate) {
+    public GithubGraphQLClient(RestTemplate restTemplate, @Value("${github.api.graphql-url}") String githubGraphqlUrl, @Value("${github.api.token}") String githubToken) {
         this.restTemplate = restTemplate;
+        this.githubGraphqlUrl = githubGraphqlUrl;
+        this.githubToken = githubToken;
     }
 
     /**
