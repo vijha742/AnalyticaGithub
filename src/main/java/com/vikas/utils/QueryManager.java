@@ -170,48 +170,39 @@ public class QueryManager {
                   }
                   totalSize
                 }
-                object(expression: "HEAD") {
-                  ... on Tree {
-                  entries {
-                    type
-                    name
-                    object {
-                    ... on Tree {
-                      entries {
-                      type
-                      name
-                      object {
-                        ... on Tree {
-                        entries {
-                          type
-                          name
-                          object {
-                          ... on Tree {
-                            entries {
-                            type
-                            name
-                            object {
-                              ... on Tree {
-                              entries {
-                                type
-                                name
-                              }
-                              }
-                            }
-                            }
-                          }
-                          }
-                        }
-                        }
-                      }
-                      }
-                    }
-                    }
-                  }
-                  }
-                }
                 }
               }
-                """;
+              """;
+    }
+
+    public String getTechnicalProfile() {
+        return """
+                query($owner: String!) {
+                    user(login: $owner) {
+                      repositories(first: 100) {
+                        nodes {
+                          name
+                          createdAt
+                          updatedAt
+                          languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
+                            edges {
+                              size
+                              node {
+                                name
+                              }
+                            }
+                          }
+                          repositoryTopics(first: 100) {
+                            nodes {
+                              topic {
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+              """;
     }
 }

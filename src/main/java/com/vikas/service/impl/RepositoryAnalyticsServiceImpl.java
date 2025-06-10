@@ -1,17 +1,15 @@
 package com.vikas.service.impl;
 
-import com.vikas.model.CodeMetrics;
-import com.vikas.model.LanguageStats;
-import com.vikas.model.ReadmeQuality;
+import com.vikas.model.*;
+
 import com.vikas.service.RepositoryAnalyticsService;
 import com.vikas.utils.GithubGraphQLClient;
 import com.vikas.utils.LinesCalculator;
 import com.vikas.utils.QueryManager;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
@@ -85,13 +83,13 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
         return quality;
     }
 
+    @Override
     public CodeMetrics getCodeMetrics(String username, String repoName) {
         Map<String, String> variables = Map.of("owner", username,"name", repoName);
         Map<String, Object> response = gitHubClient.executeQuery(queryManager.getCodeMetrics(), variables);
         CodeMetrics metrics = new CodeMetrics();
         List<LanguageStats> languageStats = new ArrayList<>();
         int totalSize = 0;
-        int totalFiles = 0;
         int totalLines = 0;
 
         if (response != null && response.containsKey("repository")) {
@@ -116,7 +114,7 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
                 }
             }
 
-            totalFiles = gitHubClient.getTotalFiles(username,repoName);
+            int totalFiles = gitHubClient.getTotalFiles(username, repoName);
             for (LanguageStats stats : languageStats) {
                 stats.setFileCount((int)(totalFiles * (stats.getPercentage() / 100.0f)));
             }
@@ -141,5 +139,104 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
         return (sizeScore * 0.7f + fileScore * 0.3f);
     }
 
-}
+    // TODO: apply the filter to not get in languages the repos which are forked...
+    @Override
+        public TechnicalProfile getTechnicalProfile(String username) {
+            TechnicalProfile profile = new TechnicalProfile();
+            Map<String, LanguageExpertise> languageMap = new HashMap<>();
+            Map<String, TechnologyUsage> frameworkMap = new HashMap<>();
 
+            Map<String, String> variables = Map.of("owner", username);
+            Map<String, Object> response = gitHubClient.executeQuery(queryManager.getTechnicalProfile(), variables);
+            if(response == null) return profile;
+            Map<String, Object> user = (Map<String, Object>) response.get("user");
+            if (user == null || !user.containsKey("repositories")) return profile;
+
+            Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
+            List<Map<String, Object>> nodes = (List<Map<String, Object>>) repositories.get("nodes");
+
+            if (nodes == null) return profile;
+
+            for (Map<String, Object> repo : nodes) {
+                String repoName = (String) repo.get("name");
+                String createdAtStr = (String) repo.get("createdAt");
+                OffsetDateTime createdAt = createdAtStr != null ? OffsetDateTime.parse(createdAtStr) : null;
+                String updatedAtStr = (String) repo.get("updatedAt");
+                OffsetDateTime updatedAt = updatedAtStr != null ? OffsetDateTime.parse(updatedAtStr) : null;
+
+                Map<String, Object> topicsList = (Map<String, Object>) repo.get("repositoryTopics");
+                List<Map<String, Object>> nodesList = (List<Map<String, Object>>) topicsList.get("nodes");
+
+                for (Map<String,Object> nodeSet : nodesList) {
+                    Map<String, Object> topicMap = (Map<String, Object>) nodeSet.get("topic");
+                    String topic = topicMap != null ? (String) topicMap.get("name") : null;
+                        if (isFramework(topic)) {
+                                    frameworkMap
+                                            .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.FRAMEWORK))
+                                            .update(createdAt, updatedAt);
+                        } else if (isLibrary(topic)) {
+                            frameworkMap
+                                    .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.LIBRARY))
+                                    .update(createdAt, updatedAt);
+                        } else if (isTool(topic)) {
+                            frameworkMap
+                                    .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.TOOL))
+                                    .update(createdAt, updatedAt);
+                        }
+                }
+                Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
+                List<Map<String, Object>> edges = (List<Map<String, Object>>) languages.get("edges");
+                if (edges != null) {
+                    for (Map<String, Object> edge : edges) {
+                        int size = (Integer) edge.get("size");
+                        Map<String, Object> langNode = (Map<String, Object>) edge.get("node");
+                        if (langNode != null) {
+                            String languageName = (String) langNode.get("name");
+                            if (languageName != null) {
+                                languageMap
+                                        .computeIfAbsent(languageName, k -> new LanguageExpertise(languageName))
+                                        .update(createdAt, updatedAt, LinesCalculator.calculateLinesOfCode(languageName, size));
+                            }
+                        }
+                    }
+                }
+            }
+                // TODO: To populate frameworkMap: - topics based, - dependency parsing for limited projects, - leave at all (Currently topic based)
+            profile.setPrimaryLanguages(new ArrayList<>(languageMap.values()));
+            profile.setFrameworksUsed(new ArrayList<>(frameworkMap.values()));
+            profile.setSpecializationScore(calculateSpecializationScore(languageMap.values()));
+            profile.setVersatilityScore(calculateVersatilityScore(languageMap.size()));
+
+            return profile;
+        }
+    public float calculateSpecializationScore(Collection<LanguageExpertise> languages) {
+        if (languages.isEmpty()) return 0.0f;
+        Optional<LanguageExpertise> primaryLanguage = languages.stream()
+                .max(Comparator.comparingInt(LanguageExpertise::getLinesOfCode));
+        if (primaryLanguage.isEmpty()) return 0.0f;
+        int totalLines = languages.stream()
+                .mapToInt(LanguageExpertise::getLinesOfCode)
+                .sum();
+
+        return (float) primaryLanguage.get().getLinesOfCode() / totalLines;
+    }
+    public float calculateVersatilityScore(int languages) {
+        return Math.min(1.0f, (float) (Math.log(languages + 1) / Math.log(2)) / 5);
+    }
+    public boolean isFramework(String topic) {
+        Set<String> frameworks =
+                Set.of();
+        return frameworks.contains(topic.toLowerCase());
+    }
+    public boolean isLibrary(String topic) {
+        Set<String> library =
+                Set.of();
+        return library.contains(topic.toLowerCase());
+    }
+    public boolean isTool(String topic) {
+        Set<String> tool =
+                Set.of();
+        return tool.contains(topic.toLowerCase());
+    }
+
+}

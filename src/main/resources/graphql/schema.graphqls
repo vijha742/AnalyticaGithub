@@ -1,5 +1,6 @@
 type User {
     id: ID!
+    login: String!
     githubUsername: String!
     name: String
     email: String
@@ -11,7 +12,8 @@ type User {
     totalContributions: Int
     lastUpdated: String
     lastRefreshed: String
-    repositories: [Repository!]
+    repositories(first: Int, after: String): RepositoryConnection!
+    repositoriesLegacy: [Repository!]
     contributions: [Contribution!]
     contributionCalendar: ContributionCalendar
 }
@@ -34,7 +36,6 @@ type SuggestedUser {
     suggestedAt: String
     active: Boolean
 }
-
 type Repository {
     id: ID!
     name: String!
@@ -45,6 +46,81 @@ type Repository {
     isPrivate: Boolean!
     createdAt: String!
     updatedAt: String!
+    languages(first: Int, after: String, orderBy: LanguageOrder): LanguageConnection!
+    repositoryTopics(first: Int, after: String): RepositoryTopicConnection!
+}
+type RepositoryConnection {
+    nodes: [Repository!]!
+    edges: [RepositoryEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type RepositoryEdge {
+    node: Repository!
+    cursor: String!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+type RepositoryTopicConnection {
+    nodes: [RepositoryTopic!]!
+    edges: [RepositoryTopicEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+type RepositoryTopic {
+    id: ID!
+    topic: Topic!
+}
+
+type RepositoryTopicEdge {
+    node: RepositoryTopic!
+    cursor: String!
+}
+
+type Topic {
+    id: ID!
+    name: String!
+}
+
+type LanguageConnection {
+    edges: [LanguageEdge!]!
+    nodes: [Language!]!
+    totalSize: Int!
+    pageInfo: PageInfo!
+}
+
+type LanguageEdge {
+    size: Int!
+    node: Language!
+    cursor: String!
+}
+
+type Language {
+    id: ID!
+    name: String!
+    color: String
+}
+
+input LanguageOrder {
+    field: LanguageOrderField!
+    direction: OrderDirection!
+}
+
+enum LanguageOrderField {
+    SIZE
+    NAME
+}
+
+enum OrderDirection {
+    ASC
+    DESC
 }
 
 type Contribution {
@@ -62,16 +138,16 @@ enum ContributionType {
 }
 
 type Query {
-    user(username: String!): User
+    user(login: String, username: String): User
     users(limit: Int, offset: Int): [User!]!
     searchUsers(query: String!, limit: Int, offset: Int): [User!]!
     rateLimit: RateLimit!
     suggestedUsers: [SuggestedUser!]!
     contributionsTimeSeries(
-        username: String!, 
-        timeFrame: TimeFrame!, 
-        startDate: String, 
-        endDate: String, 
+        username: String!,
+        timeFrame: TimeFrame!,
+        startDate: String,
+        endDate: String,
         contributionTypes: [ContributionType!]
     ): ContributionTimeSeries!
 }
