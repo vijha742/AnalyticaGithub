@@ -1,11 +1,11 @@
 package com.vikas.service.impl;
 
 import com.vikas.model.*;
-
 import com.vikas.service.RepositoryAnalyticsService;
 import com.vikas.utils.GithubGraphQLClient;
 import com.vikas.utils.LinesCalculator;
 import com.vikas.utils.QueryManager;
+
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -23,56 +23,99 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
     }
 
     @Override
-    public ReadmeQuality analyzeReadmeQuality(String username, String repositoryName, String filename) {
-        ReadmeQuality quality = new ReadmeQuality();
-        Map<String, String> variables = Map.of("owner", username,"name", repositoryName,"filePath", filename);
+    public List<ReadmeQuality> analyzeReadmeQuality(String username) {
+        Map<String, String> variables = Map.of("owner", username);
         Map<String, Object> response = gitHubClient.executeQuery(queryManager.analyzeReadmeQuality(), variables);
-        if (response != null && response.containsKey("repository")) {
-            Map<String, Object> repo = (Map<String, Object>) response.get("repository");
-            Map<String, Object> object = (Map<String, Object>) repo.get("object");
+        List<ReadmeQuality> readmeQualities = new ArrayList<>();
 
-            if (object != null) {
-                String readmeContent = (String) object.get("text");
-                quality = analyzeReadmeContent(readmeContent);
+        if (response != null && response.containsKey("user")) {
+            Map<String, Object> user = (Map<String, Object>) response.get("user");
+            Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
+            List<Map<String, Object>> nodes = (List<Map<String, Object>>) repositories.get("nodes");
+
+            for (Map<String, Object> repo : nodes) {
+                ReadmeQuality quality = new ReadmeQuality();
+
+                String repoName = (String) repo.get("name");
+                quality.setTitle(repoName); // Optional: if you want repo info in the result
+
+                Map<String, Object> readme1 = (Map<String, Object>) repo.get("readme1");
+                Map<String, Object> readme2 = (Map<String, Object>) repo.get("readme2");
+                Map<String, Object> readme3 = (Map<String, Object>) repo.get("readme3");
+                Map<String, Object> readme4 = (Map<String, Object>) repo.get("readme4");
+                if (readme1 != null) {
+                    String readmeContent = (String) readme1.get("text");
+                    quality = analyzeReadmeContent(readmeContent);
+                    quality.setTitle(repoName);
+                } else if (readme2 != null) {
+                    String readmeContent = (String) readme2.get("text");
+                    quality = analyzeReadmeContent(readmeContent);
+                    quality.setTitle(repoName);
+                } else if (readme3 != null) {
+                    String readmeContent = (String) readme3.get("text");
+                    quality = analyzeReadmeContent(readmeContent);
+                    quality.setTitle(repoName);
+                } else if (readme4 != null) {
+                    String readmeContent = (String) readme4.get("text");
+                    quality = analyzeReadmeContent(readmeContent);
+                    quality.setTitle(repoName);
+                }
+
                 Map<String, Object> defaultBranch = (Map<String, Object>) repo.get("defaultBranchRef");
-                // HACK: Tells last commit date in the repo not the Readme.
                 if (defaultBranch != null) {
                     Map<String, Object> target = (Map<String, Object>) defaultBranch.get("target");
-                    Map<String, Object> history = (Map<String, Object>) target.get("history");
-                    List<Map<String, Object>> nodes = (List<Map<String, Object>>) history.get("nodes");
-                    if (!nodes.isEmpty()) {
-                        String lastCommitDate = (String) nodes.getFirst().get("committedDate");
-                        quality.setLastUpdated(lastCommitDate);
+                    if (target != null) {
+                        Map<String, Object> history = (Map<String, Object>) target.get("history");
+                        if (history != null) {
+                            List<Map<String, Object>> historyNodes = (List<Map<String, Object>>) history.get("nodes");
+                            if (historyNodes != null && !historyNodes.isEmpty()) {
+                                String lastCommitDate = (String) historyNodes.get(0).get("committedDate");
+                                quality.setLastUpdated(lastCommitDate);
+                            }
+                        }
                     }
                 }
+
+                readmeQualities.add(quality);
             }
         }
-        return quality;
+
+        return readmeQualities;
     }
+
+
     private ReadmeQuality analyzeReadmeContent(String content) {
         if (content == null) {
             return ReadmeQuality.createEmptyReadmeQuality();
         }
         ReadmeQuality quality = new ReadmeQuality();
         int score = 0;
-        boolean hasIntro = Pattern.compile("^\\s*#.*?\\n.*?\\n", Pattern.MULTILINE)
-                .matcher(content)
-                .find();
+        boolean hasIntro =
+                Pattern.compile("^\\s*#.*?\\n.*?\\n", Pattern.MULTILINE).matcher(content).find();
         quality.setHasIntroduction(hasIntro);
         if (hasIntro) score += 25;
-        boolean hasInstall = Pattern.compile("(?i)(installation|getting started|setup|how to use)", Pattern.MULTILINE)
-                .matcher(content)
-                .find();
+        boolean hasInstall =
+                Pattern.compile(
+                                "(?i)(installation|getting started|setup|how to use)",
+                                Pattern.MULTILINE)
+                        .matcher(content)
+                        .find();
         quality.setHasInstallationGuide(hasInstall);
         if (hasInstall) score += 25;
-        boolean hasExamples = Pattern.compile("(?i)(usage|example|examples|how to|usage example)", Pattern.MULTILINE)
-                .matcher(content)
-                .find();
+        boolean hasExamples =
+                Pattern.compile(
+                                "(?i)(usage|example|examples|how to|usage example)",
+                                Pattern.MULTILINE)
+                        .matcher(content)
+                        .find();
         quality.setHasUsageExamples(hasExamples);
         if (hasExamples) score += 25;
-        boolean hasMaintainer = Pattern.compile("(?i)(contributing|maintainer|contact|support|license)", Pattern.MULTILINE)
-                .matcher(content)
-                .find();
+        boolean hasMaintainer =
+                Pattern.compile(
+                                "(?i)(contributing|maintainer|contact|support|license)",
+                                Pattern.MULTILINE)
+                        .matcher(content)
+                        .find();
         quality.setHasMaintainerSection(hasMaintainer);
         if (hasMaintainer) score += 25;
         int wordCount = content.split("\\s+").length;
@@ -85,8 +128,9 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
 
     @Override
     public CodeMetrics getCodeMetrics(String username, String repoName) {
-        Map<String, String> variables = Map.of("owner", username,"name", repoName);
-        Map<String, Object> response = gitHubClient.executeQuery(queryManager.getCodeMetrics(), variables);
+        Map<String, String> variables = Map.of("owner", username, "name", repoName);
+        Map<String, Object> response =
+                gitHubClient.executeQuery(queryManager.getCodeMetrics(), variables);
         CodeMetrics metrics = new CodeMetrics();
         List<LanguageStats> languageStats = new ArrayList<>();
         int totalSize = 0;
@@ -97,7 +141,8 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
             Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
 
             if (languages != null) {
-                List<Map<String, Object>> edges = (List<Map<String, Object>>) languages.get("edges");
+                List<Map<String, Object>> edges =
+                        (List<Map<String, Object>>) languages.get("edges");
                 totalSize = (Integer) languages.get("totalSize");
 
                 for (Map<String, Object> edge : edges) {
@@ -116,13 +161,14 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
 
             int totalFiles = gitHubClient.getTotalFiles(username, repoName);
             for (LanguageStats stats : languageStats) {
-                stats.setFileCount((int)(totalFiles * (stats.getPercentage() / 100.0f)));
+                stats.setFileCount((int) (totalFiles * (stats.getPercentage() / 100.0f)));
             }
             metrics.setLanguageDistribution(languageStats);
             metrics.setTotalLines(totalLines);
             System.out.println(totalFiles);
             metrics.setAverageFileSize(totalFiles > 0 ? totalSize / totalFiles : 0);
-            metrics.setComplexityScore(Math.round(calculateComplexityScore(totalSize, totalFiles) * 100));
+            metrics.setComplexityScore(
+                    Math.round(calculateComplexityScore(totalSize, totalFiles) * 100));
             List<String> factors = new ArrayList<>();
             if (totalFiles > 100) factors.add("Large number of files");
             if (languageStats.size() > 3) factors.add("Multiple languages");
@@ -141,82 +187,95 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
 
     // TODO: apply the filter to not get in languages the repos which are forked...
     @Override
-        public TechnicalProfile getTechnicalProfile(String username) {
-            TechnicalProfile profile = new TechnicalProfile();
-            Map<String, LanguageExpertise> languageMap = new HashMap<>();
-            Map<String, TechnologyUsage> frameworkMap = new HashMap<>();
+    public TechnicalProfile getTechnicalProfile(String username) {
+        TechnicalProfile profile = new TechnicalProfile();
+        Map<String, LanguageExpertise> languageMap = new HashMap<>();
+        Map<String, TechnologyUsage> frameworkMap = new HashMap<>();
 
-            Map<String, String> variables = Map.of("owner", username);
-            Map<String, Object> response = gitHubClient.executeQuery(queryManager.getTechnicalProfile(), variables);
-            if(response == null) return profile;
-            Map<String, Object> user = (Map<String, Object>) response.get("user");
-            if (user == null || !user.containsKey("repositories")) return profile;
+        Map<String, String> variables = Map.of("owner", username);
+        Map<String, Object> response =
+                gitHubClient.executeQuery(queryManager.getTechnicalProfile(), variables);
+        if (response == null) return profile;
+        Map<String, Object> user = (Map<String, Object>) response.get("user");
+        if (user == null || !user.containsKey("repositories")) return profile;
 
-            Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
-            List<Map<String, Object>> nodes = (List<Map<String, Object>>) repositories.get("nodes");
+        Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) repositories.get("nodes");
 
-            if (nodes == null) return profile;
+        if (nodes == null) return profile;
 
-            for (Map<String, Object> repo : nodes) {
-                String repoName = (String) repo.get("name");
-                String createdAtStr = (String) repo.get("createdAt");
-                OffsetDateTime createdAt = createdAtStr != null ? OffsetDateTime.parse(createdAtStr) : null;
-                String updatedAtStr = (String) repo.get("updatedAt");
-                OffsetDateTime updatedAt = updatedAtStr != null ? OffsetDateTime.parse(updatedAtStr) : null;
+        for (Map<String, Object> repo : nodes) {
+            String repoName = (String) repo.get("name");
+            String createdAtStr = (String) repo.get("createdAt");
+            OffsetDateTime createdAt =
+                    createdAtStr != null ? OffsetDateTime.parse(createdAtStr) : null;
+            String updatedAtStr = (String) repo.get("updatedAt");
+            OffsetDateTime updatedAt =
+                    updatedAtStr != null ? OffsetDateTime.parse(updatedAtStr) : null;
 
-                Map<String, Object> topicsList = (Map<String, Object>) repo.get("repositoryTopics");
-                List<Map<String, Object>> nodesList = (List<Map<String, Object>>) topicsList.get("nodes");
+            Map<String, Object> topicsList = (Map<String, Object>) repo.get("repositoryTopics");
+            List<Map<String, Object>> nodesList =
+                    (List<Map<String, Object>>) topicsList.get("nodes");
 
-                for (Map<String,Object> nodeSet : nodesList) {
-                    Map<String, Object> topicMap = (Map<String, Object>) nodeSet.get("topic");
-                    String topic = topicMap != null ? (String) topicMap.get("name") : null;
-                        if (isFramework(topic)) {
-                                    frameworkMap
-                                            .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.FRAMEWORK))
-                                            .update(createdAt, updatedAt);
-                        } else if (isLibrary(topic)) {
-                            frameworkMap
-                                    .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.LIBRARY))
-                                    .update(createdAt, updatedAt);
-                        } else if (isTool(topic)) {
-                            frameworkMap
-                                    .computeIfAbsent(topic, t -> new TechnologyUsage(topic, TechnologyCategory.TOOL))
-                                    .update(createdAt, updatedAt);
-                        }
+            for (Map<String, Object> nodeSet : nodesList) {
+                Map<String, Object> topicMap = (Map<String, Object>) nodeSet.get("topic");
+                String topic = topicMap != null ? (String) topicMap.get("name") : null;
+                if (isFramework(topic)) {
+                    frameworkMap
+                            .computeIfAbsent(
+                                    topic,
+                                    t -> new TechnologyUsage(topic, TechnologyCategory.FRAMEWORK))
+                            .update(createdAt, updatedAt);
+                } else if (isLibrary(topic)) {
+                    frameworkMap
+                            .computeIfAbsent(
+                                    topic,
+                                    t -> new TechnologyUsage(topic, TechnologyCategory.LIBRARY))
+                            .update(createdAt, updatedAt);
+                } else if (isTool(topic)) {
+                    frameworkMap
+                            .computeIfAbsent(
+                                    topic, t -> new TechnologyUsage(topic, TechnologyCategory.TOOL))
+                            .update(createdAt, updatedAt);
                 }
-                Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
-                List<Map<String, Object>> edges = (List<Map<String, Object>>) languages.get("edges");
-                if (edges != null) {
-                    for (Map<String, Object> edge : edges) {
-                        int size = (Integer) edge.get("size");
-                        Map<String, Object> langNode = (Map<String, Object>) edge.get("node");
-                        if (langNode != null) {
-                            String languageName = (String) langNode.get("name");
-                            if (languageName != null) {
-                                languageMap
-                                        .computeIfAbsent(languageName, k -> new LanguageExpertise(languageName))
-                                        .update(createdAt, updatedAt, LinesCalculator.calculateLinesOfCode(languageName, size));
-                            }
+            }
+            Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
+            List<Map<String, Object>> edges = (List<Map<String, Object>>) languages.get("edges");
+            if (edges != null) {
+                for (Map<String, Object> edge : edges) {
+                    int size = (Integer) edge.get("size");
+                    Map<String, Object> langNode = (Map<String, Object>) edge.get("node");
+                    if (langNode != null) {
+                        String languageName = (String) langNode.get("name");
+                        if (languageName != null) {
+                            languageMap
+                                    .computeIfAbsent(
+                                            languageName, k -> new LanguageExpertise(languageName))
+                                    .update(
+                                            createdAt,
+                                            updatedAt,
+                                            LinesCalculator.calculateLinesOfCode(
+                                                    languageName, size));
                         }
                     }
                 }
             }
-                // TODO: To populate frameworkMap: - topics based, - dependency parsing for limited projects, - leave at all (Currently topic based)
-            profile.setPrimaryLanguages(new ArrayList<>(languageMap.values()));
-            profile.setFrameworksUsed(new ArrayList<>(frameworkMap.values()));
-            profile.setSpecializationScore(calculateSpecializationScore(languageMap.values()));
-            profile.setVersatilityScore(calculateVersatilityScore(languageMap.size()));
-
-            return profile;
         }
+        // TODO: To populate frameworkMap: - topics based, - dependency parsing for limited
+        // projects, - leave at all (Currently topic based)
+        profile.setPrimaryLanguages(new ArrayList<>(languageMap.values()));
+        profile.setFrameworksUsed(new ArrayList<>(frameworkMap.values()));
+        profile.setSpecializationScore(calculateSpecializationScore(languageMap.values()));
+        profile.setVersatilityScore(calculateVersatilityScore(languageMap.size()));
+
+        return profile;
+    }
     public float calculateSpecializationScore(Collection<LanguageExpertise> languages) {
         if (languages.isEmpty()) return 0.0f;
-        Optional<LanguageExpertise> primaryLanguage = languages.stream()
-                .max(Comparator.comparingInt(LanguageExpertise::getLinesOfCode));
+        Optional<LanguageExpertise> primaryLanguage =
+                languages.stream().max(Comparator.comparingInt(LanguageExpertise::getLinesOfCode));
         if (primaryLanguage.isEmpty()) return 0.0f;
-        int totalLines = languages.stream()
-                .mapToInt(LanguageExpertise::getLinesOfCode)
-                .sum();
+        int totalLines = languages.stream().mapToInt(LanguageExpertise::getLinesOfCode).sum();
 
         return (float) primaryLanguage.get().getLinesOfCode() / totalLines;
     }
@@ -224,19 +283,33 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
         return Math.min(1.0f, (float) (Math.log(languages + 1) / Math.log(2)) / 5);
     }
     public boolean isFramework(String topic) {
-        Set<String> frameworks =
-                Set.of();
+        Set<String> frameworks = Set.of();
         return frameworks.contains(topic.toLowerCase());
     }
     public boolean isLibrary(String topic) {
-        Set<String> library =
-                Set.of();
+        Set<String> library = Set.of();
         return library.contains(topic.toLowerCase());
     }
     public boolean isTool(String topic) {
-        Set<String> tool =
-                Set.of();
+        Set<String> tool = Set.of();
         return tool.contains(topic.toLowerCase());
     }
 
+//    @Override
+//    public List<Repository> getImpactfulRepository(String username) {
+//        Map<String, String> variables = Map.of("owner", username);
+//        Map<String, Object> response = gitHubClient.executeQuery(queryManager.getImpactfulRepository(), variables);
+//        if (response != null && response.containsKey("user")) {
+//            Map<String, Object> user = (Map<String, Object>) response.get("user");
+//            Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
+//            List<Map<String, Object>> repos = (List<Map<String, Object>>) repositories.get("nodes");
+//
+//        }
+//    }
+
+    public RepoData getRepoData(String username) {
+        RepoData repoData = new RepoData();
+        
+        return repoData;
+    }
 }

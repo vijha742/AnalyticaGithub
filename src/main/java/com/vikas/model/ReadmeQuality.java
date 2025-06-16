@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class ReadmeQuality {
+    private String title;
     private int score;
     private boolean hasIntroduction;
     private boolean hasInstallationGuide;

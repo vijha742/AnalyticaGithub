@@ -1,4 +1,4 @@
-# Analytica Github
+# Analytica GitHub
 
 A platform that helps developers track and analyze GitHub activity of their peers, making it easier to find experts, track contributions, and discover collaboration opportunities.
 
@@ -42,7 +42,7 @@ A platform that helps developers track and analyze GitHub activity of their peer
 
 ### Backend
 - Spring Boot
-- Supabase for database and authentication
+- NeonDB for database and authentication
 - GitHub GraphQL API for data fetching
 - Rate limiting and caching implementation
 
@@ -52,41 +52,39 @@ A platform that helps developers track and analyze GitHub activity of their peer
 - Email/Password
 
 ### Deployment
-- Frontend: Vercel (free tier)
-- Backend: Railway.app/Render.com (free tier with GitHub Student Pack)
+- Frontend: Vercel
+- Backend: Render.com
 
 ## Execution Plan
 
 ### V0 - Foundation (Week 1-2)
 - [x] Set up project structure
-- [ ] Implement basic GitHub data fetching
-- [ ] Create user addition system
-- [ ] Design and implement basic desktop UI
-- [ ] Set up authentication system
+- [x] Implement basic GitHub data fetching
+- [x] Create user addition system
+- [x] Design and implement basic desktop UI
 
 ### V1 - Basic UI (Week 3-4)
-- [ ] Develop landing page
+- [x] Develop landing page
 - [ ] Create about page
 - [x] Implement mobile UI
-- [ ] Set up basic routing
-- [ ] Implement light/dark mode
+- [x] Set up basic routing
+- [x] Implement light/dark mode
 
 ### V2 - User Interface Enhancement (Week 5-6)
-- [ ] Create users display page
-- [ ] Implement responsive design
-- [ ] Revamp desktop UI
-- [ ] Add basic user profiles
-- [ ] Implement data refresh system
+- [x] Create users display page
+- [x] Implement responsive design
+- [x] Revamp desktop UI
+- [x] Add basic user profiles
+- [x] Implement data refresh system
 
 ### V3 - Core Features (Week 7-8)
 - [ ] Develop homepage
-- [ ] Enhance about page
 - [ ] Implement achievement system
 - [ ] Add basic metrics tracking
 - [ ] Set up data caching
 
 ### V4 - Data Management (Week 9-10)
-- [ ] Implement Supabase integration
+- [ ] Implement NeonDB integration
 - [ ] Create daily/weekly rankings
 - [ ] Add weighted scoring system
 - [ ] Implement data refresh intervals
@@ -99,27 +97,17 @@ A platform that helps developers track and analyze GitHub activity of their peer
 - [ ] Develop private repository access
 - [ ] Create recommendation system
 
-## Technical Considerations
-
-### Rate Limiting
-- Implement caching for frequently accessed data
-- Use webhooks for real-time updates
-- Batch requests where possible
-- Implement exponential backoff for retries
-- Store data locally and update incrementally
 
 ### Data Refresh Strategy
 - 10-minute interval for regular users
 - Admin privileges for manual refresh
 - Queue system for updates
-- Prioritize active users' data
-- Incremental updates
 
 ### Dashboard Features
 - Activity Overview
   - Daily commit graph
   - Commit patterns
-  - Language distribution
+  - Language distribution & metrics
 - Code Quality
   - Commit message quality
   - PR review participation

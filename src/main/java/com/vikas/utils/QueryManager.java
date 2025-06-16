@@ -133,27 +133,50 @@ public class QueryManager {
 
     public String analyzeReadmeQuality() {
         return """            
-             query($owner: String!, $name: String!) {
-                        repository(owner: $owner, name: $name) {
-                          object(expression: "HEAD:README.md") {
-                            ... on Blob {
-                              text
-                              commitUrl
-                            }
-                          }
-                          defaultBranchRef {
-                            target {
-                              ... on Commit {
-                                history(path: "README.md") {
-                                  nodes {
-                                    committedDate
+             query($owner: String!) {
+                      user(login: $owner) {
+                        repositories(first: 100) {
+                            nodes {
+                                name
+                                readme1: object(expression: "HEAD:README.md") {
+                                    ... on Blob {
+                                      text
+                                      commitUrl
+                                    }
+                                }
+                                readme2: object(expression: "HEAD:Readme.md") {
+                                    ... on Blob {
+                                      text
+                                      commitUrl
+                                    }
+                                }
+                                readme3: object(expression: "HEAD:readme.md") {
+                                    ... on Blob {
+                                      text
+                                      commitUrl
+                                    }
+                                }
+                                readme4: object(expression: "HEAD:ReadMe.md") {
+                                    ... on Blob {
+                                      text
+                                      commitUrl
+                                    }
+                                }
+                              defaultBranchRef {
+                                target {
+                                  ... on Commit {
+                                    history(path: "README.md") {
+                                      nodes {
+                                        committedDate
+                                      }
+                                    }
                                   }
                                 }
                               }
                             }
-                          }
                         }
                       }
+             }
             """;
     }
 
@@ -204,5 +227,52 @@ public class QueryManager {
                     }
                   }
               """;
+    }
+
+    public String getImpactfulRepository() {
+        return """
+                query($username: String!) {
+                  user(login: $username) {
+                    repositories(first: 100, orderBy: {field: STARGAZERS, direction: DESC}) {
+                      totalCount
+                      nodes {
+                        name
+                        stargazerCount
+                        forkCount
+                        watchers {
+                          totalCount
+                        }
+                        primaryLanguage {
+                          name
+                        }
+                        languages(first: 10) {
+                          edges {
+                            node {
+                              name
+                            }
+                          }
+                        }
+                        createdAt
+                        dependencyGraphManifests(first: 1) {
+                          nodes {
+                            dependents(first: 1) {
+                              totalCount
+                            }
+                          }
+                        }
+                        stargazers(first: 100, orderBy: {field: STARRED_AT, direction: ASC}) {
+                          edges {
+                            starredAt
+                          }
+                        }
+                      }
+                    }
+                    followers {
+                      totalCount
+                    }
+                  }
+                }
+                
+                """;
     }
 }

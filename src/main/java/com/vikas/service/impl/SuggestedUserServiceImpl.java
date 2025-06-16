@@ -42,7 +42,7 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         SuggestedUser suggestedUser = new SuggestedUser();
         suggestedUser.setGithubUsername(githubUsername);
         suggestedUser.setSuggestedBy(suggestedBy);
-        suggestedUser.setActive(true);  // Changed from setIsActive to setActive
+        suggestedUser.setActive(true);
         suggestedUser.setName(githubUser.getName());
         suggestedUser.setEmail(githubUser.getEmail());
         suggestedUser.setAvatarUrl(githubUser.getAvatarUrl());
