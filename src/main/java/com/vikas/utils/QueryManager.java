@@ -7,56 +7,48 @@ public class QueryManager {
     public String fetchUserData() {
         return """
                 query($username: String!) {
-                                    user(login: $username) {
-                                        id
-                                        login
-                                        name
-                                        email
-                                        avatarUrl
-                                        bio
-                                        followers {
-                                            totalCount
-                                        }
-                                        following {
-                                            totalCount
-                                        }
-                                        repositories(first: 100) {
-                                            totalCount
-                                            nodes {
-                                                id
-                                                name
-                                                description
-                                                primaryLanguage {
-                                                    name
-                                                }
-                                                stargazerCount
-                                                forkCount
-                                                isPrivate
-                                                viewerCanAdminister
-                                                createdAt
-                                                updatedAt
-                                                repositoryTopics(first: 100) {
-                                                    nodes {
-                                                        topic {
-                                                            name
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        contributionsCollection {
-                                            totalCommitContributions
-                                            totalPullRequestContributions
-                                            totalIssueContributions
-                                            totalRepositoryContributions
-                                        }
-                                    }
-                                    rateLimit {
-                                        limit
-                                        remaining
-                                        resetAt
-                                    }
-                                }
+                      user(login: $username) {
+                          id
+                          login
+                          name
+                          email
+                          avatarUrl
+                          bio
+                          followers {
+                              totalCount
+                          }
+                          following {
+                              totalCount
+                          }
+                          repositories(first: 100) {
+                              totalCount
+                              nodes {
+                                  id
+                                  name
+                                  description
+                                  primaryLanguage {
+                                      name
+                                  }
+                                  stargazerCount
+                                  forkCount
+                                  isPrivate
+                                  createdAt
+                                  updatedAt
+                              }
+                          }
+                          contributionsCollection {
+                              totalCommitContributions
+                              totalPullRequestContributions
+                              totalIssueContributions
+                              totalRepositoryContributions
+                          }
+                      }
+                      rateLimit {
+                          limit
+                          remaining
+                          resetAt
+                      }
+                  }
                 """;
     }
 
@@ -182,19 +174,27 @@ public class QueryManager {
 
     public String getCodeMetrics() {
         return """
-              query($owner: String!, $name: String!) {
-                repository(owner: $owner, name: $name) {
-                languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
-                  edges {
-                  size
-                  node {
-                    name
-                  }
-                  }
-                  totalSize
-                }
-                }
-              }
+              query($login: String!) {
+              user(login: $login) {
+                repositories(first: 100, privacy: PUBLIC, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                 nodes {
+                         name
+                         owner {
+                           login
+                         }
+                         languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
+                           edges {
+                             size
+                             node {
+                               name
+                             }
+                           }
+                           totalSize
+                         }
+                       }
+                     }
+                   }
+                 }
               """;
     }
 

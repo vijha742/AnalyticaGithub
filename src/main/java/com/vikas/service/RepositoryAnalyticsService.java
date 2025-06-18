@@ -10,7 +10,7 @@ import java.util.List;
 public interface RepositoryAnalyticsService {
     List<ReadmeQuality> analyzeReadmeQuality(String username);
 
-    CodeMetrics getCodeMetrics(String username, String repoName);
+    List<CodeMetrics> getCodeMetrics(String username);
 
     TechnicalProfile getTechnicalProfile(String username);
 //    List<Repository> getImpactfulRepository(String username);

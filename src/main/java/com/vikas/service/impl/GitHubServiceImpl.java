@@ -1,8 +1,8 @@
 package com.vikas.service.impl;
 
 import com.vikas.model.Contribution;
-import com.vikas.model.GithubUser;
 import com.vikas.model.Repository;
+import com.vikas.model.GithubUser;
 import com.vikas.model.timeseries.TimeFrame;
 import com.vikas.service.GitHubService;
 import com.vikas.dto.GitHubUserResponse;
@@ -85,6 +85,7 @@ public class GitHubServiceImpl implements GitHubService {
                 if (gitHubUser.getRepositories() != null && gitHubUser.getRepositories().getNodes() != null) {
                     for (GitHubUserResponse.Repository repo : gitHubUser.getRepositories().getNodes()) {
                         Repository mappedRepo = mapRepository(repo);
+                        repositories.add(mappedRepo);
                     }
                 }
                 user.setRepositories(repositories);

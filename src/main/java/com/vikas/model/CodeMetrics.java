@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class CodeMetrics {
+    private String title;
     private int totalLines;
     private List<LanguageStats> languageDistribution = new ArrayList<>();
     private int averageFileSize;

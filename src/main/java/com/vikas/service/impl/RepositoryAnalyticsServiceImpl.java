@@ -82,8 +82,6 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
 
         return readmeQualities;
     }
-
-
     private ReadmeQuality analyzeReadmeContent(String content) {
         if (content == null) {
             return ReadmeQuality.createEmptyReadmeQuality();
@@ -127,56 +125,62 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
     }
 
     @Override
-    public CodeMetrics getCodeMetrics(String username, String repoName) {
-        Map<String, String> variables = Map.of("owner", username, "name", repoName);
+    public List<CodeMetrics> getCodeMetrics(String username) {
+        Map<String, String> variables = Map.of("login", username);
         Map<String, Object> response =
                 gitHubClient.executeQuery(queryManager.getCodeMetrics(), variables);
-        CodeMetrics metrics = new CodeMetrics();
-        List<LanguageStats> languageStats = new ArrayList<>();
-        int totalSize = 0;
-        int totalLines = 0;
+        List<CodeMetrics> allMetrics = new ArrayList<>();
+        if (response != null && response.containsKey("user")) {
+            Map<String, Object> user = (Map<String, Object>) response.get("user");
+            Map<String, Object> repositories = (Map<String, Object>) user.get("repositories");
+            List<Map<String, Object>> nodes = (List<Map<String, Object>>) repositories.get("nodes");
+            for (Map<String, Object> repo : nodes) {
+                CodeMetrics metrics = new CodeMetrics();
+                String repoName = (String) repo.get("name");
+                metrics.setTitle(repoName);
+                List<LanguageStats> languageStats = new ArrayList<>();
+                int totalSize = 0;
+                int totalLines = 0;
+                Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
 
-        if (response != null && response.containsKey("repository")) {
-            Map<String, Object> repo = (Map<String, Object>) response.get("repository");
-            Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
+                    if (languages != null) {
+                        List<Map<String, Object>> edges =
+                                (List<Map<String, Object>>) languages.get("edges");
+                        totalSize = (Integer) languages.get("totalSize");
 
-            if (languages != null) {
-                List<Map<String, Object>> edges =
-                        (List<Map<String, Object>>) languages.get("edges");
-                totalSize = (Integer) languages.get("totalSize");
-
-                for (Map<String, Object> edge : edges) {
-                    LanguageStats stats = new LanguageStats();
-                    Map<String, Object> node = (Map<String, Object>) edge.get("node");
-                    int size = (Integer) edge.get("size");
-                    String lang = (String) node.get("name");
-                    stats.setLanguage(lang);
-                    int langLines = LinesCalculator.calculateLinesOfCode(lang, size);
-                    totalLines += langLines;
-                    stats.setLinesOfCode(langLines);
-                    stats.setPercentage((float) size / totalSize * 100);
-                    languageStats.add(stats);
+                        for (Map<String, Object> edge : edges) {
+                            LanguageStats stats = new LanguageStats();
+                            Map<String, Object> node = (Map<String, Object>) edge.get("node");
+                            int size = (Integer) edge.get("size");
+                            String lang = (String) node.get("name");
+                            stats.setLanguage(lang);
+                            int langLines = LinesCalculator.calculateLinesOfCode(lang, size);
+                            totalLines += langLines;
+                            stats.setLinesOfCode(langLines);
+                            stats.setPercentage((float) size / totalSize * 100);
+                            languageStats.add(stats);
+                        }
+                    }
+                    int totalFiles = 5000;
+//                int totalFiles = gitHubClient.getTotalFiles(username, repoName);
+                for (LanguageStats stats : languageStats) {
+                    stats.setFileCount((int) (totalFiles * (stats.getPercentage() / 100.0f)));
                 }
+                metrics.setLanguageDistribution(languageStats);
+                metrics.setTotalLines(totalLines);
+                metrics.setAverageFileSize(totalFiles > 0 ? totalSize / totalFiles : 0);
+                metrics.setComplexityScore(
+                        Math.round(calculateComplexityScore(totalSize, totalFiles) * 100));
+                List<String> factors = new ArrayList<>();
+                if (totalFiles > 100) factors.add("Large number of files");
+                if (languageStats.size() > 3) factors.add("Multiple languages");
+                if (totalSize > 100000) factors.add("Large codebase");
+                if (factors.isEmpty()) factors.add("Standard complexity");
+                metrics.setComplexityFactors(factors);
+                allMetrics.add(metrics);
             }
-
-            int totalFiles = gitHubClient.getTotalFiles(username, repoName);
-            for (LanguageStats stats : languageStats) {
-                stats.setFileCount((int) (totalFiles * (stats.getPercentage() / 100.0f)));
-            }
-            metrics.setLanguageDistribution(languageStats);
-            metrics.setTotalLines(totalLines);
-            System.out.println(totalFiles);
-            metrics.setAverageFileSize(totalFiles > 0 ? totalSize / totalFiles : 0);
-            metrics.setComplexityScore(
-                    Math.round(calculateComplexityScore(totalSize, totalFiles) * 100));
-            List<String> factors = new ArrayList<>();
-            if (totalFiles > 100) factors.add("Large number of files");
-            if (languageStats.size() > 3) factors.add("Multiple languages");
-            if (totalSize > 100000) factors.add("Large codebase");
-            if (factors.isEmpty()) factors.add("Standard complexity");
-            metrics.setComplexityFactors(factors);
         }
-        return metrics;
+        return allMetrics;
     }
     // TODO: Check and see whether this formula is a good metric...
     private float calculateComplexityScore(int totalSize, int totalFiles) {
@@ -307,9 +311,9 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
 //        }
 //    }
 
-    public RepoData getRepoData(String username) {
-        RepoData repoData = new RepoData();
-        
-        return repoData;
-    }
+//    public RepoData getRepoData(String username) {
+//        RepoData repoData = new RepoData();
+//
+//        return repoData;
+//    }
 }
