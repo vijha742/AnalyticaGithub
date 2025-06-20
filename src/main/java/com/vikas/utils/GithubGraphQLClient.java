@@ -54,22 +54,46 @@ public class GithubGraphQLClient {
     }
 
     public int getTotalFiles(String owner, String repo) {
-        String url = String.format("https://api.github.com/repos/%s/%s/git/trees/HEAD?recursive=1", owner, repo);
+        // First get the repository info to find the default branch
+        String repoUrl = String.format("https://api.github.com/repos/%s/%s", owner, repo);
 
         HttpHeaders headers = new HttpHeaders();
+        headers.set("Accept", "application/vnd.github+json");
         headers.set("Authorization", "Bearer " + githubToken);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("X-GitHub-Api-Version", "2022-11-28");
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange( url, HttpMethod.GET, requestEntity, Map.class);
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            List<Map<String, Object>> tree = (List<Map<String, Object>>) response.getBody().get("tree");
+        try {
+            // Get repository info
+            ResponseEntity<Map> repoResponse = restTemplate.exchange(repoUrl, HttpMethod.GET, requestEntity, Map.class);
+            Map<String, Object> repoData = repoResponse.getBody();
 
-            if (tree == null) return 0;
-            return (int) tree.stream()
-                    .filter(entry -> "blob".equals(entry.get("type")))
-                    .count();
+            if (repoData == null) return 0;
+
+            // Get the default branch name
+            String defaultBranch = (String) repoData.get("default_branch");
+            if (defaultBranch == null) defaultBranch = "main"; // fallback
+
+            // Now get the tree using the default branch
+            String treeUrl = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1",
+                    owner, repo, defaultBranch);
+
+            ResponseEntity<Map> response = restTemplate.exchange(treeUrl, HttpMethod.GET, requestEntity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> tree = (List<Map<String, Object>>) response.getBody().get("tree");
+                if (tree == null) return 0;
+
+                return (int) tree.stream()
+                        .filter(entry -> "blob".equals(entry.get("type")))
+                        .count();
+            }
+
+        } catch (Exception e) {
+            System.err.println("Failed to get files for " + owner + "/" + repo + ": " + e.getMessage());
+            return 0;
         }
+
         return 0;
     }
 }

@@ -161,8 +161,8 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
                             languageStats.add(stats);
                         }
                     }
-                    int totalFiles = 5000;
-//                int totalFiles = gitHubClient.getTotalFiles(username, repoName);
+//                    int totalFiles = 5000;
+                int totalFiles = gitHubClient.getTotalFiles(username, repoName);
                 for (LanguageStats stats : languageStats) {
                     stats.setFileCount((int) (totalFiles * (stats.getPercentage() / 100.0f)));
                 }
