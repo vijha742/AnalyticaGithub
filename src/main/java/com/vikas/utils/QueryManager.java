@@ -4,6 +4,7 @@ public class QueryManager {
 
     public QueryManager() {}
 
+    // TODO: Need to update query to get total contributions instead of commits this year.
     public String fetchUserData() {
         return """
                 query($username: String!) {
@@ -130,6 +131,7 @@ public class QueryManager {
                         repositories(first: 100) {
                             nodes {
                                 name
+                                isFork
                                 readme1: object(expression: "HEAD:README.md") {
                                     ... on Blob {
                                       text
@@ -182,6 +184,7 @@ public class QueryManager {
                          owner {
                            login
                          }
+                         isFork
                          languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
                            edges {
                              size
@@ -207,6 +210,7 @@ public class QueryManager {
                           name
                           createdAt
                           updatedAt
+                          isFork
                           languages(first: 100, orderBy: {field: SIZE, direction: DESC}) {
                             edges {
                               size

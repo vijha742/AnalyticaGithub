@@ -3,10 +3,14 @@ package com.vikas.service.impl;
 import com.vikas.model.Contribution;
 import com.vikas.model.Repository;
 import com.vikas.model.GithubUser;
+import com.vikas.model.timeseries.ContributionCalendar;
+import com.vikas.model.timeseries.ContributionDay;
+import com.vikas.model.timeseries.ContributionWeek;
 import com.vikas.model.timeseries.TimeFrame;
 import com.vikas.service.GitHubService;
 import com.vikas.dto.GitHubUserResponse;
 import com.vikas.dto.GitHubSearchResponse;
+import com.vikas.utils.GithubGraphQLClient;
 import com.vikas.utils.QueryManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -31,13 +35,15 @@ public class GitHubServiceImpl implements GitHubService {
     @Value("${github.api.token}")
     private String githubToken;
 
-    private final RestTemplate restTemplate;
+    private final GithubGraphQLClient githubClient;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
     private final QueryManager queryHub;
+    private final RestTemplate restTemplate;
 
-    public GitHubServiceImpl(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public GitHubServiceImpl(GithubGraphQLClient githubClient, RestTemplate restTemplate) {
+        this.githubClient = githubClient;
         this.queryHub = new QueryManager();
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -241,71 +247,54 @@ public class GitHubServiceImpl implements GitHubService {
 
 
     @Override
-    public Map<LocalDate, Integer> getContributionTimeSeries(String username, String timeFrame,
-                                                             LocalDate startDate, LocalDate endDate,
-                                                             List<String> contributionTypes) {
-        Optional<GithubUser> userOptional = fetchUserData(username);
-        if (userOptional.isEmpty()) {
-            return Map.of();
-        }
+    public ContributionCalendar getContributionTimeSeries(String username) {
+        Map<String, String> variables = Map.of("username", username);
+        Map<String, Object> response = githubClient.executeQuery(queryHub.getContributionCalendar(), variables);
+        System.out.println(response);
+        if (response == null) return new ContributionCalendar();
+        try {
+            Map<String, Object> user = (Map<String, Object>) response.get("user");
+            if (user == null) return new ContributionCalendar();
+            Map<String, Object> contributionsCollection = (Map<String, Object>) user.get("contributionsCollection");
+            if (contributionsCollection == null) return new ContributionCalendar();
+            Map<String, Object> contributionCalendar = (Map<String, Object>) contributionsCollection.get("contributionCalendar");
+            if (contributionCalendar == null) return new ContributionCalendar();
+            Integer totalContributions = (Integer) contributionCalendar.get("totalContributions");
+            List<Map<String, Object>> weeksData = (List<Map<String, Object>>) contributionCalendar.get("weeks");
+            List<ContributionWeek> weeks = new ArrayList<>();
+            if (weeksData != null) {
+                for (Map<String, Object> weekData : weeksData) {
+                    String firstDay = (String) weekData.get("firstDay");
+                    List<Map<String, Object>> contributionDaysData = (List<Map<String, Object>>) weekData.get("contributionDays");
+                    List<ContributionDay> contributionDays = new ArrayList<>();
+                    if (contributionDaysData != null) {
+                        for (Map<String, Object> dayData : contributionDaysData) {
+                            String date = (String) dayData.get("date");
+                            Integer contributionCount = (Integer) dayData.get("contributionCount");
 
-        GithubUser user = userOptional.get();
-        List<Contribution> contributions = user.getContributions();
-
-        if (contributions == null || contributions.isEmpty()) {
-            return Map.of();
-        }
-
-        List<Contribution> filteredContributions = contributions;
-        if (contributionTypes != null && !contributionTypes.isEmpty()) {
-            filteredContributions = contributions.stream()
-                    .filter(c -> contributionTypes.contains(c.getType()))
-                    .toList();
-        }
-
-        // Use default date range if not provided
-        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().minusYears(1);
-        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
-
-        // Validate date range
-        if (effectiveStartDate.isAfter(effectiveEndDate) || effectiveStartDate.isAfter(LocalDate.now())) {
-            return Map.of();
-        }
-
-        // Convert Instant dates to LocalDate and aggregate
-        Map<LocalDate, Integer> contributionsByDate = new HashMap<>();
-
-        // Initialize all dates in range with 0
-        LocalDate current = effectiveStartDate;
-        while (!current.isAfter(effectiveEndDate)) {
-            contributionsByDate.put(current, 0);
-            current = switch(TimeFrame.valueOf(timeFrame.toUpperCase())) {
-                case DAILY -> current.plusDays(1);
-                case WEEKLY -> current.plusWeeks(1);
-                case MONTHLY -> current.plusMonths(1);
-                case YEARLY -> current.plusYears(1);
-            };
-        }
-
-        // Add contribution counts
-        for (Contribution contribution : filteredContributions) {
-            LocalDate date = contribution.getDate().atZone(java.time.ZoneOffset.UTC).toLocalDate();
-
-            if (date.isBefore(effectiveStartDate) || date.isAfter(effectiveEndDate)) {
-                continue;
+                            ContributionDay contributionDay = new ContributionDay();
+                            contributionDay.setDate(date);
+                            contributionDay.setContributionCount(contributionCount != null ? contributionCount : 0);
+                            contributionDays.add(contributionDay);
+                        }
+                    }
+                    if (!contributionDays.isEmpty()) {
+                        ContributionWeek week = new ContributionWeek();
+                        week.setFirstDay(firstDay);
+                        week.setContributionDays(contributionDays);
+                        weeks.add(week);
+                    }
+                }
             }
+            ContributionCalendar result = new ContributionCalendar();
+            result.setTotalContributions(totalContributions != null ? totalContributions : 0);
+            result.setWeeks(weeks);
+            return result;
 
-            LocalDate aggregationKey = switch(TimeFrame.valueOf(timeFrame.toUpperCase())) {
-                case DAILY -> date;
-                case WEEKLY -> date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-                case MONTHLY -> date.withDayOfMonth(1);
-                case YEARLY -> date.withDayOfYear(1);
-            };
-
-            contributionsByDate.merge(aggregationKey, contribution.getCount(), Integer::sum);
+        } catch (ClassCastException | NullPointerException e) {
+            System.err.println("Error parsing GitHub API response: " + e.getMessage());
+            return new ContributionCalendar();
         }
-
-        return contributionsByDate;
     }
 
     private Repository mapRepository(GitHubUserResponse.Repository repo) {

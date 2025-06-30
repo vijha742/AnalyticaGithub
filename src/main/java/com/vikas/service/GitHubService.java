@@ -1,6 +1,7 @@
 package com.vikas.service;
 
 import com.vikas.model.GithubUser;
+import com.vikas.model.timeseries.ContributionCalendar;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,11 +24,6 @@ public interface GitHubService {
     GithubUser refreshUserData(String githubUsername);
 
     // Time series data for charts
-    Map<LocalDate, Integer> getContributionTimeSeries(
-            String username,
-            String timeFrame,
-            LocalDate startDate,
-            LocalDate endDate,
-            List<String> contributionTypes);
+    ContributionCalendar getContributionTimeSeries(String username);
 }
 

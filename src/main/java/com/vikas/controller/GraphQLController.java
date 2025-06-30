@@ -2,6 +2,7 @@ package com.vikas.controller;
 
 import com.vikas.model.GithubUser;
 import com.vikas.model.SuggestedUser;
+import com.vikas.model.timeseries.ContributionCalendar;
 import com.vikas.model.timeseries.ContributionTimeSeries;
 import com.vikas.model.timeseries.TimeSeriesDataPoint;
 import com.vikas.service.GitHubService;
@@ -67,40 +68,6 @@ public class GraphQLController {
     @QueryMapping
     public List<SuggestedUser> suggestedUsers() {
         return suggestedUserService.getAllActiveUsers();
-    }
-
-    @QueryMapping
-    public ContributionTimeSeries contributionsTimeSeries(
-            @Argument String username,
-            @Argument String timeFrame,
-            @Argument String startDate,
-            @Argument String endDate,
-            @Argument List<String> contributionTypes) {
-        
-        // Parse date strings to LocalDate if provided
-        LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
-        LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
-        
-        // Get time series data from service
-        Map<LocalDate, Integer> timeSeriesData = gitHubService.getContributionTimeSeries(
-            username, timeFrame, start, end, contributionTypes
-        );
-        
-        // Transform the map data into a list of data points
-        List<TimeSeriesDataPoint> dataPoints = timeSeriesData.entrySet().stream()
-            .map(entry -> new TimeSeriesDataPoint(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        
-        // Calculate total count
-        int totalCount = timeSeriesData.values().stream().mapToInt(Integer::intValue).sum();
-        
-        // Determine period start and end
-        LocalDate periodStart = timeSeriesData.isEmpty() ? LocalDate.now() : 
-            timeSeriesData.keySet().stream().min(LocalDate::compareTo).orElse(LocalDate.now());
-        LocalDate periodEnd = timeSeriesData.isEmpty() ? LocalDate.now() : 
-            timeSeriesData.keySet().stream().max(LocalDate::compareTo).orElse(LocalDate.now());
-        
-        return new ContributionTimeSeries(dataPoints, totalCount, periodStart, periodEnd);
     }
 
     record RateLimit(int remaining, int limit, String resetAt) {}
