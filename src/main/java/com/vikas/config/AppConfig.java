@@ -13,13 +13,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-
-
-
 @Configuration
 @EnableScheduling
 public class AppConfig {
-
 
     @Bean
     public RestTemplate restTemplate() {
@@ -36,10 +32,10 @@ public class AppConfig {
     }
 
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsFilter corsFilter(@Value("${frontend.url}") String frontend) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin(frontend);
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
