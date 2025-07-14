@@ -7,10 +7,16 @@ import java.util.Optional;
 
 public interface SuggestedUserService {
     SuggestedUser suggestUser(String githubUsername, String suggestedBy);
+
     SuggestedUser refreshUserData(String githubUsername);
+
     List<SuggestedUser> getAllActiveUsers();
+
     Optional<SuggestedUser> getUserByUsername(String githubUsername);
-    List<GithubUser> getActiveSuggestedUsers();
+
+    List<SuggestedUser> getActiveSuggestedUsersWithTimeoutForUser(String username);
+
     void deactivateUser(Long id);
+
     boolean isUserSuggested(String githubUsername);
-} 
+}

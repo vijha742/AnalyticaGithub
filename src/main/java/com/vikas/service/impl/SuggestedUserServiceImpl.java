@@ -1,7 +1,6 @@
 package com.vikas.service.impl;
 
-import com.vikas.model.Contribution;
-import com.vikas.model.Repository;
+import lombok.extern.slf4j.Slf4j;
 import com.vikas.model.SuggestedUser;
 import com.vikas.model.GithubUser;
 import com.vikas.repository.SuggestedUserRepository;
@@ -12,14 +11,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
+@Slf4j
 public class SuggestedUserServiceImpl implements SuggestedUserService {
     private final SuggestedUserRepository suggestedUserRepository;
     private final GitHubService gitHubService;
     private final GithubGraphQLClient githubClient;
 
-    public SuggestedUserServiceImpl(SuggestedUserRepository suggestedUserRepository, GitHubService gitHubService, GithubGraphQLClient githubClient) {
+    public SuggestedUserServiceImpl(SuggestedUserRepository suggestedUserRepository, GitHubService gitHubService,
+            GithubGraphQLClient githubClient) {
         this.suggestedUserRepository = suggestedUserRepository;
         this.gitHubService = gitHubService;
         this.githubClient = githubClient;
@@ -28,14 +32,14 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Override
     @Transactional
     public SuggestedUser suggestUser(String githubUsername, String suggestedBy) {
-        if (!gitHubService.verifyUserExists(githubUsername)) {
+        if (!githubClient.verifyUserExists(githubUsername)) {
             throw new RuntimeException("GitHub user does not exist: " + githubUsername);
         }
         if (suggestedUserRepository.existsByGithubUsername(githubUsername)) {
             throw new RuntimeException("User has already been suggested: " + githubUsername);
         }
         var githubUser = gitHubService.fetchUserData(githubUsername)
-            .orElseThrow(() -> new RuntimeException("Failed to fetch user data from GitHub"));
+                .orElseThrow(() -> new RuntimeException("Failed to fetch user data from GitHub"));
         SuggestedUser suggestedUser = new SuggestedUser();
         suggestedUser.setGithubUsername(githubUsername);
         suggestedUser.setSuggestedBy(suggestedBy);
@@ -59,11 +63,11 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Transactional
     public SuggestedUser refreshUserData(String githubUsername) {
         SuggestedUser suggestedUser = suggestedUserRepository.findByGithubUsername(githubUsername)
-            .orElseThrow(() -> new RuntimeException("Suggested user not found: " + githubUsername));
+                .orElseThrow(() -> new RuntimeException("Suggested user not found: " + githubUsername));
 
         // Fetch fresh data from GitHub
         var githubUser = gitHubService.fetchUserData(githubUsername)
-            .orElseThrow(() -> new RuntimeException("Failed to fetch user data from GitHub"));
+                .orElseThrow(() -> new RuntimeException("Failed to fetch user data from GitHub"));
 
         // Update user data
         suggestedUser.setName(githubUser.getName());
@@ -93,7 +97,7 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
 
     public String getQueryBuilder(String githubUsername, int i) {
         String filteredUser = githubUsername.replaceAll("[^a-zA-Z0-9]", "");
-        String data =  filteredUser + ": user (login: \"" + githubUsername + "\") {\n" +
+        String data = filteredUser + ": user (login: \"" + githubUsername + "\") {\n" +
                 "                          id\n" +
                 "                          login\n" +
                 "                          name\n" +
@@ -131,158 +135,101 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
                 "                      }\n";
         return data;
     }
+
+    // TODO: implemList<GithubUser> list = in a batch to get all users data from the
+    // DB to reduce time...
+    // TODO: to reduce latency here what we can do is chop down the request size
+    // into groups of 6 and send or groups of 3 with parallel operations on them(but
+    // it'd consume up queries fastly.)
     @Override
-    public List<GithubUser> getActiveSuggestedUsers() {
-        List<SuggestedUser> suggestedUsers = suggestedUserRepository.findByActiveTrue();
+    public List<SuggestedUser> getActiveSuggestedUsersWithTimeoutForUser(String username) {
+        List<SuggestedUser> suggestedUsers = suggestedUserRepository.findByActiveTrueAndSuggestedBy(username);
+        System.out.println(suggestedUsers);
         long start = System.currentTimeMillis();
-        // TODO: implemList<GithubUser> list = in a batch to get all users data from the DB to reduce time...
-        if(!suggestedUsers.isEmpty()) {
-            StringBuilder mainQuery =  new StringBuilder("query {");
-            for (int i = 0; i < suggestedUsers.size(); i++) {
-                mainQuery.append(getQueryBuilder(suggestedUsers.get(i).getGithubUsername(), i + 1));
-            }
-            mainQuery.append("}");
-            System.out.println("Time to query to build: " + (System.currentTimeMillis() - start) + " ms");
-            long queryStart = System.currentTimeMillis();
-            Map<String, Object> response = githubClient.executeQuery(String.valueOf(mainQuery), new HashMap<>());
-            //TODO: to reduce latency here what we can do is chop down the request size into groups of 6 and send or groups of 3 with parallel operations on them(but it'd consume up queries fastly.)
-            System.out.println((System.currentTimeMillis() - queryStart) + " ms");
+        if (suggestedUsers.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            return suggestedUsers;
+        }
+
+//        final int MAX_USERS_IN_SINGLE_QUERY = 6;
+//        final int TIMEOUT_SECONDS = 30;
+//        int totalUsers = suggestedUsers.size();
+//        List<CompletableFuture<List<GithubUser>>> futures = new ArrayList<>();
+//        for (int startIndex = 0; startIndex < totalUsers; startIndex += MAX_USERS_IN_SINGLE_QUERY) {
+//            int endIndex = Math.min(startIndex + MAX_USERS_IN_SINGLE_QUERY, totalUsers);
+//            final int batchStart = startIndex;
+//            final int batchEnd = endIndex;
+//
+//            CompletableFuture<List<GithubUser>> future = CompletableFuture
+//                    .supplyAsync(() -> fetchBatch(suggestedUsers, batchStart, batchEnd))
+//                    .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+//                    .exceptionally(ex -> {
+//                        log.error("Batch failed for indexes {}-{}", batchStart, batchEnd, ex);
+//                        return new ArrayList<>();
+//                    });
+//            futures.add(future);
+//        }
+//
+//        try {
+//            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+//                    .get(TIMEOUT_SECONDS + 10, TimeUnit.SECONDS);
+//            List<GithubUser> allUsers = new ArrayList<>(totalUsers);
+//            for (CompletableFuture<List<GithubUser>> future : futures) {
+//                allUsers.addAll(future.get());
+//            }
+//            System.out.println("Time to complete request: " + (System.currentTimeMillis() - start) + " ms");
+//            return allUsers;
+//        } catch (TimeoutException e) {
+//            log.error("Timeout waiting for all batches to complete", e);
+//            return collectPartialResults(futures);
+//        } catch (Exception e) {
+//            log.error("Error fetching suggested users", e);
+//            throw new RuntimeException("Failed to fetch suggested users", e);
+//        }
+    }
+
+    private List<GithubUser> fetchBatch(List<SuggestedUser> suggestedUsers, int startIndex, int endIndex) {
+        int batchSize = endIndex - startIndex;
+        List<GithubUser> batchResults = new ArrayList<>(batchSize);
+
+        StringBuilder queryBuilder = new StringBuilder("query {");
+        for (int i = 0; i < batchSize; i++) {
+            String username = suggestedUsers.get(startIndex + i).getGithubUsername();
+            queryBuilder.append(getQueryBuilder(username, i + 1));
+        }
+        queryBuilder.append("}");
+
+        try {
+            Map<String, Object> response = githubClient.executeQuery(queryBuilder.toString(), Collections.emptyMap());
             if (response != null) {
-                List<GithubUser> suggestedUserList = new ArrayList<>();
-                for (Map.Entry<String, Object> entry : response.entrySet()) {
-                    String username = entry.getKey();
-                    Object userDataObj = entry.getValue();
+                for (Object userDataObj : response.values()) {
                     if (userDataObj instanceof Map) {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> userData = (Map<String, Object>) userDataObj;
-                        GithubUser user = new GithubUser();
-                        user.setId((String) userData.get("id"));
-                        user.setGithubUsername((String) userData.get("login"));
-                        user.setName((String) userData.get("name"));
-                        user.setEmail((String) userData.get("email"));
-                        user.setAvatarUrl((String) userData.get("avatarUrl"));
-                        user.setBio((String) userData.get("bio"));
-                        Object followersObj = userData.get("followers");
-                        if (followersObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> followers = (Map<String, Object>) followersObj;
-                            Object totalCount = followers.get("totalCount");
-                            user.setFollowersCount(totalCount instanceof Integer ? (Integer) totalCount : 0);
-                        }
-                        Object followingObj = userData.get("following");
-                        if (followingObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> following = (Map<String, Object>) followingObj;
-                            Object totalCount = following.get("totalCount");
-                            user.setFollowingCount(totalCount instanceof Integer ? (Integer) totalCount : 0);
-                        }
-                        Object repositoriesObj = userData.get("repositories");
-                        if (repositoriesObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> repositories = (Map<String, Object>) repositoriesObj;
-                            Object totalCount = repositories.get("totalCount");
-                            user.setPublicReposCount(totalCount instanceof Integer ? (Integer) totalCount : 0);
-                        }
-                        user.setLastUpdated(Instant.now());
-                        List<Repository> repositories = new ArrayList<>();
-                        if (repositoriesObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> repositoriesData = (Map<String, Object>) repositoriesObj;
-                            Object nodesObj = repositoriesData.get("nodes");
-                            if (nodesObj instanceof List) {
-                                @SuppressWarnings("unchecked")
-                                List<Object> nodes = (List<Object>) nodesObj;
-                                for (Object nodeObj : nodes) {
-                                    if (nodeObj instanceof Map) {
-                                        @SuppressWarnings("unchecked")
-                                        Map<String, Object> repoData = (Map<String, Object>) nodeObj;
-                                        Repository mappedRepo = mapRepository(repoData);
-                                        repositories.add(mappedRepo);
-                                    }
-                                }
-                            }
-                        }
-                        user.setRepositories(repositories);
-                        List<Contribution> contributions = new ArrayList<>();
-                        Object contributionsObj = userData.get("contributionsCollection");
-                        if (contributionsObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> contributionsCollection = (Map<String, Object>) contributionsObj;
-                            Contribution commitContribution = new Contribution();
-                            commitContribution.setId("commit_" + userData.get("id"));
-                            commitContribution.setDate(Instant.now());
-                            Object commitCount = contributionsCollection.get("totalCommitContributions");
-                            commitContribution.setCount(commitCount instanceof Integer ? (Integer) commitCount : 0);
-                            commitContribution.setType("COMMIT");
-                            contributions.add(commitContribution);
-                            Contribution prContribution = new Contribution();
-                            prContribution.setId("pr_" + userData.get("id"));
-                            prContribution.setDate(Instant.now());
-                            Object prCount = contributionsCollection.get("totalPullRequestContributions");
-                            prContribution.setCount(prCount instanceof Integer ? (Integer) prCount : 0);
-                            prContribution.setType("PULL_REQUEST");
-                            contributions.add(prContribution);
-                            Contribution issueContribution = new Contribution();
-                            issueContribution.setId("issue_" + userData.get("id"));
-                            issueContribution.setDate(Instant.now());
-                            Object issueCount = contributionsCollection.get("totalIssueContributions");
-                            issueContribution.setCount(issueCount instanceof Integer ? (Integer) issueCount : 0);
-                            issueContribution.setType("ISSUE");
-                            contributions.add(issueContribution);
-                        }
-                        user.setContributions(contributions);
-                        suggestedUserList.add(user);
+                        GithubUser user = GithubUser.mapToUser(userData);
+                        batchResults.add(user);
                     }
                 }
-                System.out.println("total time to process: " + (System.currentTimeMillis() - start) + " ms");
-                return suggestedUserList;
             }
+        } catch (Exception e) {
+            log.error("Error fetching batch {}-{}", startIndex, endIndex, e);
         }
-        return new ArrayList<GithubUser>();
+        return batchResults;
     }
 
-    private Repository mapRepository(Map<String, Object> repoData) {
-        Repository repository = new Repository();
-
-        repository.setId((String) repoData.get("id"));
-        repository.setName((String) repoData.get("name"));
-        repository.setDescription((String) repoData.get("description"));
-
-        Object primaryLanguageObj = repoData.get("primaryLanguage");
-        if (primaryLanguageObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> primaryLanguage = (Map<String, Object>) primaryLanguageObj;
-            repository.setLanguage((String) primaryLanguage.get("name"));
-        }
-
-        Object starCount = repoData.get("stargazerCount");
-        repository.setStargazerCount(starCount instanceof Integer ? (Integer) starCount : 0);
-
-        Object forkCount = repoData.get("forkCount");
-        repository.setForkCount(forkCount instanceof Integer ? (Integer) forkCount : 0);
-
-        Object isPrivate = repoData.get("isPrivate");
-        repository.setIsPrivate(isPrivate instanceof Boolean ? (Boolean) isPrivate : false);
-
-        Object createdAt = repoData.get("createdAt");
-        if (createdAt instanceof String) {
-            try {
-                repository.setCreatedAt(Instant.parse((String) createdAt));
-            } catch (Exception e) {
-                repository.setCreatedAt(Instant.now()); // fallback
+    private List<GithubUser> collectPartialResults(List<CompletableFuture<List<GithubUser>>> futures) {
+        List<GithubUser> partialResults = new ArrayList<>();
+        for (CompletableFuture<List<GithubUser>> future : futures) {
+            if (future.isDone() && !future.isCompletedExceptionally()) {
+                try {
+                    partialResults.addAll(future.get());
+                } catch (Exception e) {
+                    log.warn("Could not get result from completed future", e);
+                }
             }
         }
-
-        Object updatedAt = repoData.get("updatedAt");
-        if (updatedAt instanceof String) {
-            try {
-                repository.setUpdatedAt(Instant.parse((String) updatedAt));
-            } catch (Exception e) {
-                repository.setUpdatedAt(Instant.now()); // fallback
-            }
-        }
-
-        return repository;
+        return partialResults;
     }
 
     @Override
@@ -290,7 +237,7 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     public void deactivateUser(Long id) {
         SuggestedUser user = suggestedUserRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-        user.setActive(false);  // Changed from setIsActive to setActive
+        user.setActive(false); // Changed from setIsActive to setActive
         suggestedUserRepository.save(user);
     }
 
