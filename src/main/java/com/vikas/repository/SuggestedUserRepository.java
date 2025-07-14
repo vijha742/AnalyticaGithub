@@ -9,6 +9,10 @@ import java.util.Optional;
 @Repository
 public interface SuggestedUserRepository extends JpaRepository<SuggestedUser, Long> {
     Optional<SuggestedUser> findByGithubUsername(String githubUsername);
-    List<SuggestedUser> findByActiveTrue(); // Changed from findByIsActiveTrue
+
+    List<SuggestedUser> findByActiveTrueAndSuggestedBy(String suggestedBy);
+
+    List<SuggestedUser> findByActiveTrue();
+
     boolean existsByGithubUsername(String githubUsername);
 }

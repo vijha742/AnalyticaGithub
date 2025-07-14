@@ -1,32 +1,39 @@
 package com.vikas.service.impl;
 
-import com.vikas.model.Contribution;
-import com.vikas.model.Repository;
-import com.vikas.model.GithubUser;
-import com.vikas.model.timeseries.ContributionCalendar;
-import com.vikas.model.timeseries.ContributionDay;
-import com.vikas.model.timeseries.ContributionWeek;
-import com.vikas.model.timeseries.TimeFrame;
-import com.vikas.service.GitHubService;
-import com.vikas.dto.GitHubUserResponse;
-import com.vikas.dto.GitHubSearchResponse;
-import com.vikas.utils.GithubGraphQLClient;
-import com.vikas.utils.QueryManager;
+import java.time.Instant;
+import java.util.*;
+
+import com.vikas.model.User;
+import com.vikas.model.Role;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import com.vikas.dto.GitHubSearchResponse;
+import com.vikas.dto.GitHubUserResponse;
+import com.vikas.model.Contribution;
+import com.vikas.model.GithubUser;
+import com.vikas.model.Repository;
+import com.vikas.model.timeseries.ContributionCalendar;
+import com.vikas.model.timeseries.ContributionDay;
+import com.vikas.model.timeseries.ContributionWeek;
+import com.vikas.repository.UserRepository;
+import com.vikas.service.GitHubService;
+import com.vikas.utils.GithubGraphQLClient;
+import com.vikas.utils.QueryManager;
 
-import java.util.*;
+import lombok.RequiredArgsConstructor;
 
-
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class GitHubServiceImpl implements GitHubService {
 
     @Value("${github.api.graphql-url}")
@@ -36,14 +43,28 @@ public class GitHubServiceImpl implements GitHubService {
     private String githubToken;
 
     private final GithubGraphQLClient githubClient;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
     private final QueryManager queryHub;
     private final RestTemplate restTemplate;
+    private final UserRepository userRepository;
 
-    public GitHubServiceImpl(GithubGraphQLClient githubClient, RestTemplate restTemplate) {
-        this.githubClient = githubClient;
-        this.queryHub = new QueryManager();
-        this.restTemplate = restTemplate;
+    @Override
+    public User findOrCreateUser(GithubUser githubUser) {
+        return userRepository.findById(Long.valueOf(githubUser.getId()))
+                .orElseGet(() -> {
+                    log.info("Creating new user for GitHub ID: {}", githubUser.getId());
+                    User newUser = new User();
+                    newUser.setGithubUsername(githubUser.getGithubUsername());
+                    newUser.setName(githubUser.getName());
+                    newUser.setEmail(githubUser.getEmail());
+                    newUser.setAvatarUrl(githubUser.getAvatarUrl());
+                    newUser.setBio(githubUser.getBio());
+                    newUser.setRole(Role.USER);
+                    newUser.setFollowersCount(githubUser.getFollowersCount());
+                    newUser.setFollowingCount(githubUser.getFollowingCount());
+                    newUser.setPublicReposCount(githubUser.getPublicReposCount());
+                    newUser.setTotalContributions(githubUser.getTotalContributions());
+                    return userRepository.save(newUser);
+                });
     }
 
     @Override
@@ -66,13 +87,11 @@ public class GitHubServiceImpl implements GitHubService {
                     githubGraphqlUrl,
                     HttpMethod.POST,
                     entity,
-                    GitHubUserResponse.class
-            ).getBody();
+                    GitHubUserResponse.class).getBody();
 
             if (response != null && response.getData() != null && response.getData().getUser() != null) {
                 GitHubUserResponse.ResponseData data = response.getData();
                 GitHubUserResponse.User gitHubUser = data.getUser();
-                GitHubUserResponse.RateLimit rateLimit = data.getRateLimit();
 
                 GithubUser user = new GithubUser();
                 user.setId(gitHubUser.getId());
@@ -127,7 +146,7 @@ public class GitHubServiceImpl implements GitHubService {
 
             return Optional.empty();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error fetching user data for {}: {}", githubUsername, e.getMessage(), e);
             return Optional.empty();
         }
     }
@@ -136,7 +155,6 @@ public class GitHubServiceImpl implements GitHubService {
     public void updateUserData(GithubUser user) {
         // TODO: Implement user data update logic using GraphQL mutations
     }
-
 
     @Override
     public List<GithubUser> searchUsers(String query, int limit, int offset) {
@@ -159,8 +177,7 @@ public class GitHubServiceImpl implements GitHubService {
                     githubGraphqlUrl,
                     HttpMethod.POST,
                     entity,
-                    GitHubSearchResponse.class
-            ).getBody();
+                    GitHubSearchResponse.class).getBody();
 
             if (response != null && response.getData() != null && response.getData().getSearch() != null) {
                 List<GithubUser> users = new ArrayList<>();
@@ -198,45 +215,6 @@ public class GitHubServiceImpl implements GitHubService {
     }
 
     @Override
-    public boolean verifyUserExists(String githubUsername) {
-        try {
-            String query = """
-                query($username: String!) {
-                    user(login: $username) {
-                        id
-                    }
-                }
-                """;
-
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("username", githubUsername);
-
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", query);
-            requestBody.put("variables", variables);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + githubToken);
-            headers.set("Content-Type", "application/json");
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-            GitHubUserResponse response = restTemplate.exchange(
-                    githubGraphqlUrl,
-                    HttpMethod.POST,
-                    entity,
-                    GitHubUserResponse.class
-            ).getBody();
-
-            return response != null &&
-                    response.getData() != null &&
-                    response.getData().getUser() != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    @Override
     public GithubUser refreshUserData(String githubUsername) {
         Optional<GithubUser> userData = fetchUserData(githubUsername);
         if (userData.isPresent()) {
@@ -245,28 +223,44 @@ public class GitHubServiceImpl implements GitHubService {
         throw new RuntimeException("Failed to refresh user data for: " + githubUsername);
     }
 
-
     @Override
+    @SuppressWarnings("unchecked")
     public ContributionCalendar getContributionTimeSeries(String username) {
         Map<String, String> variables = Map.of("username", username);
         Map<String, Object> response = githubClient.executeQuery(queryHub.getContributionCalendar(), variables);
-        System.out.println(response);
-        if (response == null) return new ContributionCalendar();
+
+        if (response == null) {
+            return new ContributionCalendar();
+        }
+
         try {
             Map<String, Object> user = (Map<String, Object>) response.get("user");
-            if (user == null) return new ContributionCalendar();
+            if (user == null) {
+                return new ContributionCalendar();
+            }
+
             Map<String, Object> contributionsCollection = (Map<String, Object>) user.get("contributionsCollection");
-            if (contributionsCollection == null) return new ContributionCalendar();
-            Map<String, Object> contributionCalendar = (Map<String, Object>) contributionsCollection.get("contributionCalendar");
-            if (contributionCalendar == null) return new ContributionCalendar();
+            if (contributionsCollection == null) {
+                return new ContributionCalendar();
+            }
+
+            Map<String, Object> contributionCalendar = (Map<String, Object>) contributionsCollection
+                    .get("contributionCalendar");
+            if (contributionCalendar == null) {
+                return new ContributionCalendar();
+            }
+
             Integer totalContributions = (Integer) contributionCalendar.get("totalContributions");
             List<Map<String, Object>> weeksData = (List<Map<String, Object>>) contributionCalendar.get("weeks");
             List<ContributionWeek> weeks = new ArrayList<>();
+
             if (weeksData != null) {
                 for (Map<String, Object> weekData : weeksData) {
                     String firstDay = (String) weekData.get("firstDay");
-                    List<Map<String, Object>> contributionDaysData = (List<Map<String, Object>>) weekData.get("contributionDays");
+                    List<Map<String, Object>> contributionDaysData = (List<Map<String, Object>>) weekData
+                            .get("contributionDays");
                     List<ContributionDay> contributionDays = new ArrayList<>();
+
                     if (contributionDaysData != null) {
                         for (Map<String, Object> dayData : contributionDaysData) {
                             String date = (String) dayData.get("date");
@@ -278,6 +272,7 @@ public class GitHubServiceImpl implements GitHubService {
                             contributionDays.add(contributionDay);
                         }
                     }
+
                     if (!contributionDays.isEmpty()) {
                         ContributionWeek week = new ContributionWeek();
                         week.setFirstDay(firstDay);
@@ -286,13 +281,14 @@ public class GitHubServiceImpl implements GitHubService {
                     }
                 }
             }
+
             ContributionCalendar result = new ContributionCalendar();
             result.setTotalContributions(totalContributions != null ? totalContributions : 0);
             result.setWeeks(weeks);
             return result;
 
         } catch (ClassCastException | NullPointerException e) {
-            System.err.println("Error parsing GitHub API response: " + e.getMessage());
+            log.error("Error parsing GitHub API response for {}: {}", username, e.getMessage());
             return new ContributionCalendar();
         }
     }
@@ -310,13 +306,14 @@ public class GitHubServiceImpl implements GitHubService {
         mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
 
         // Map topics
-//        if (repo.getRepositoryTopics() != null && repo.getRepositoryTopics().getNodes() != null) {
-//            mappedRepo.setTopics(repo.getRepositoryTopics().getNodes().stream()
-//                    .map(node -> node.getTopic().getName())
-//                    .collect(Collectors.toList()));
-//        } else {
-//            mappedRepo.setTopics(new ArrayList<>());
-//        }
+        // if (repo.getRepositoryTopics() != null &&
+        // repo.getRepositoryTopics().getNodes() != null) {
+        // mappedRepo.setTopics(repo.getRepositoryTopics().getNodes().stream()
+        // .map(node -> node.getTopic().getName())
+        // .collect(Collectors.toList()));
+        // } else {
+        // mappedRepo.setTopics(new ArrayList<>());
+        // }
 
         return mappedRepo;
     }
@@ -332,7 +329,12 @@ public class GitHubServiceImpl implements GitHubService {
         mappedRepo.setIsPrivate(repo.isPrivate());
         mappedRepo.setCreatedAt(Instant.parse(repo.getCreatedAt()));
         mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
-//        mappedRepo.setTopics(new ArrayList<>());
+        // mappedRepo.setTopics(new ArrayList<>());
         return mappedRepo;
     }
+    @Override
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByGithubUsername(username);
+    }
+
 }

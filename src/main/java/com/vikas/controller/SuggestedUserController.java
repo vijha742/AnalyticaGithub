@@ -1,12 +1,17 @@
 package com.vikas.controller;
 
 import com.vikas.model.SuggestedUser;
-import com.vikas.model.GithubUser;
 import com.vikas.service.SuggestedUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/suggested-users")
 public class SuggestedUserController {
@@ -25,8 +30,16 @@ public class SuggestedUserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GithubUser>> getActiveSuggestedUsers() {
-        return ResponseEntity.ok(suggestedUserService.getActiveSuggestedUsers());
+    public ResponseEntity<List<SuggestedUser>> getActiveSuggestedUsers() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            List<SuggestedUser> users = suggestedUserService.getActiveSuggestedUsersWithTimeoutForUser(username);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("Failed to fetch suggested users", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ArrayList<>());
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -39,4 +52,4 @@ public class SuggestedUserController {
     public ResponseEntity<Boolean> isUserSuggested(@PathVariable String githubUsername) {
         return ResponseEntity.ok(suggestedUserService.isUserSuggested(githubUsername));
     }
-} 
+}

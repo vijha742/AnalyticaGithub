@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("/api/u/{username}")
+@RequestMapping("/api/public/u/{username}")
 public class AnalyticsController {
     private final GitHubService gitHubService;
     private final RepositoryAnalyticsServiceImpl analyticsService;

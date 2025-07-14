@@ -21,11 +21,12 @@ public class User {
     private String email;
     private String avatarUrl;
     private String bio;
+    private Role role;
     private Integer followersCount;
     private Integer followingCount;
     private Integer publicReposCount;
     private Integer totalContributions;
-    
+
     @Column(name = "last_updated")
     private Instant lastUpdated;
 
@@ -34,4 +35,4 @@ public class User {
     protected void onUpdate() {
         lastUpdated = Instant.now();
     }
-} 
+}
