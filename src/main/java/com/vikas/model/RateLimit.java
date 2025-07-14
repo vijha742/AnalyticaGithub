@@ -5,8 +5,6 @@ import lombok.Data;
 import java.time.Instant;
 
 @Data
-@Entity
-@Table(name = "rate_limits")
 public class RateLimit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,8 +1,9 @@
 package com.vikas.utils;
 
-public class QueryManager {
+import org.springframework.stereotype.Component;
 
-    public QueryManager() {}
+@Component
+public class QueryManager {
 
     // TODO: Need to update query to get total contributions instead of commits this year.
     public String fetchUserData() {
@@ -42,6 +43,9 @@ public class QueryManager {
                               totalPullRequestContributions
                               totalIssueContributions
                               totalRepositoryContributions
+                              contributionCalendar {
+                                  totalContributions
+                              }
                           }
                       }
                       rateLimit {

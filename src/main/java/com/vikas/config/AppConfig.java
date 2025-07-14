@@ -12,10 +12,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.vikas.utils.QueryManager;
 
 @Configuration
 @EnableScheduling
 public class AppConfig {
+
+    @Bean
+    public QueryManager queryManager() {
+        return new QueryManager();
+    }
 
     @Bean
     public RestTemplate restTemplate() {

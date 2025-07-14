@@ -11,8 +11,6 @@ import java.time.Instant;
 import java.util.List;
 
 @Data
-@Entity
-@Table(name = "github_users")
 public class GithubUser {
     @Id private String id;
 

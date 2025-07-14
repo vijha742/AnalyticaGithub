@@ -23,9 +23,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         this.gitHubClient = gitHubClient;
     }
 
-    // TODO: Make changes so that user can define the time for which he wants to get the data.
+    // TODO: Make changes so that user can define the time for which he wants to get
+    // the data.
     @Override
     public ContributionCalendar getContributionCalendar(String username) {
+        if (!gitHubClient.verifyUserExists(username)) {
+            throw new RuntimeException("GitHub user does not exist: " + username);
+        }
+
         Map<String, String> variables = Map.of("username", username);
         Map<String, Object> response = gitHubClient.executeQuery(queryManager.getContributionCalendar(), variables);
 
@@ -34,7 +39,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (response != null && response.containsKey("user")) {
             Map<String, Object> user = (Map<String, Object>) response.get("user");
             Map<String, Object> contributionsCollection = (Map<String, Object>) user.get("contributionsCollection");
-            Map<String, Object> contributionCalendarData = (Map<String, Object>) contributionsCollection.get("contributionCalendar");
+            Map<String, Object> contributionCalendarData = (Map<String, Object>) contributionsCollection
+                    .get("contributionCalendar");
 
             int totalContributions = (Integer) contributionCalendarData.get("totalContributions");
             calendar.setTotalContributions(totalContributions);
@@ -62,7 +68,5 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
         return calendar;
     }
-
-
 
 }

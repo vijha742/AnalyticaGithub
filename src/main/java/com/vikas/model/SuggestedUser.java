@@ -27,6 +27,9 @@ public class SuggestedUser {
     private String suggestedBy;
 
     @Column(nullable = false)
+    private String group;
+
+    @Column(nullable = false)
     private Instant suggestedAt;
 
     @Column(name = "is_active", nullable = false)
@@ -57,4 +60,3 @@ public class SuggestedUser {
         suggestedAt = Instant.now();
     }
 }
-
