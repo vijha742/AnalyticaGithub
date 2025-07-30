@@ -2,20 +2,38 @@ package com.vikas.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
+@Entity
+@Table(name = "contributions")
 public class Contribution {
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
-    @JsonFormat(
-            shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            timezone = "UTC")
-    private Instant date;
+    @ManyToOne
+    private User user;
+    private String mode;
 
-    private String type;
-    private Integer count;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Integer> timeSeriesData;
+
+    private Integer pull_requests;
+    private Integer issues;
+    private Integer commits;
+    private Integer code_reviews;
+    private Integer totalContributions;
 }

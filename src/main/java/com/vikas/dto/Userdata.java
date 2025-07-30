@@ -15,4 +15,5 @@ public class Userdata {
         private final String name;
         private final String imageUrl;
         private final String githubId;
+
 }

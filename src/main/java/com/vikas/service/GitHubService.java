@@ -12,9 +12,9 @@ import java.util.Optional;
 public interface GitHubService {
     // void updateRateLimit(GitHubUserResponse.RateLimit limit);
 
-    User findOrCreateUser(GithubUser githubUser);
+ User findOrCreateUser(AuthDTO githubUser);
 
-    Optional<GithubUser> fetchUserData(String githubUsername);
+ User findOrCreateUser(String githubUsername);
 
     void updateUserData(GithubUser user);
 
@@ -27,6 +27,6 @@ public interface GitHubService {
     // Time series data for charts
     ContributionCalendar getContributionTimeSeries(String username);
 
-    Optional<User> findByUsername(String username);
+ Optional<User> findByUsername(String username);
 
 }

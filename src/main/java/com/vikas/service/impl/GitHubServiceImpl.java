@@ -3,6 +3,7 @@ package com.vikas.service.impl;
 import java.time.Instant;
 import java.util.*;
 
+import com.vikas.dto.AuthDTO;
 import com.vikas.model.User;
 import com.vikas.model.Role;
 import lombok.extern.slf4j.Slf4j;
@@ -36,213 +37,94 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GitHubServiceImpl implements GitHubService {
 
-    @Value("${github.api.graphql-url}")
-    private String githubGraphqlUrl;
+	@Value("${github.api.graphql-url}")
+	private String githubGraphqlUrl;
 
-    @Value("${github.api.token}")
-    private String githubToken;
+	@Value("${github.api.token}")
+	private String githubToken;
 
-    private final GithubGraphQLClient githubClient;
-    private final QueryManager queryHub;
-    private final RestTemplate restTemplate;
-    private final UserRepository userRepository;
+	private final GithubGraphQLClient githubClient;
+	private final QueryManager queryHub;
+	private final RestTemplate restTemplate;
+	private final UserRepository userRepository;
 
-    @Override
-    public User findOrCreateUser(GithubUser githubUser) {
-        return userRepository.findById(Long.valueOf(githubUser.getId()))
-                .orElseGet(() -> {
-                    log.info("Creating new user for GitHub ID: {}", githubUser.getId());
-                    User newUser = new User();
-                    newUser.setGithubUsername(githubUser.getGithubUsername());
-                    newUser.setName(githubUser.getName());
-                    newUser.setEmail(githubUser.getEmail());
-                    newUser.setAvatarUrl(githubUser.getAvatarUrl());
-                    newUser.setBio(githubUser.getBio());
-                    newUser.setRole(Role.USER);
-                    newUser.setFollowersCount(githubUser.getFollowersCount());
-                    newUser.setFollowingCount(githubUser.getFollowingCount());
-                    newUser.setPublicReposCount(githubUser.getPublicReposCount());
-                    newUser.setTotalContributions(githubUser.getTotalContributions());
-                    return userRepository.save(newUser);
-                });
-    }
+	@Override
+	public User findOrCreateUser(AuthDTO githubUser) {
+		return userRepository.findByGithubUsername(githubUser.getUserName())
+				.orElseGet(() -> {
+					log.info("Creating new user for GitHub ID: {}", githubUser.getUserName());
+					User newUser = new User();
+					newUser.setGithubUsername(githubUser.getUserName());
+					newUser.setName(githubUser.getName());
+					newUser.setEmail(githubUser.getEmail());
+					newUser.setAvatarUrl(githubUser.getAvatarUrl());
+					newUser.setBio(githubUser.getBio());
+					// newUser.setRole(Role.USER);
+					newUser.setFollowersCount(githubUser.getFollowersCount());
+					newUser.setFollowingCount(githubUser.getFollowingCount());
+					newUser.setPublicReposCount(githubUser.getPublicReposCount());
+					// newUser.setTotalContributions(githubUser.getTotalContributions());
+					return userRepository.save(newUser);
+				});
+	}
 
-    @Override
-    public Optional<GithubUser> fetchUserData(String githubUsername) {
-        try {
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("username", githubUsername);
+	@Override
+	public User findOrCreateUser(String Username) {
+		Optional<User> userData = userRepository.findByGithubUsername(Username);
+		if (userData.isPresent()) return userData.get();
+		else return createUserData(Username);
+	}
 
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", queryHub.fetchUserData());
-            requestBody.put("variables", variables);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + githubToken);
-            headers.set("Content-Type", "application/json");
+	public User createUserData(String githubUsername) {
+		try {
+			Map<String, Object> variables = new HashMap<>();
+			variables.put("username", githubUsername);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+			Map<String, Object> requestBody = new HashMap<>();
+			requestBody.put("query", queryHub.fetchUserData());
+			requestBody.put("variables", variables);
 
-            GitHubUserResponse response = restTemplate.exchange(
-                    githubGraphqlUrl,
-                    HttpMethod.POST,
-                    entity,
-                    GitHubUserResponse.class).getBody();
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Bearer " + githubToken);
+			headers.set("Content-Type", "application/json");
 
-            if (response != null && response.getData() != null && response.getData().getUser() != null) {
-                GitHubUserResponse.ResponseData data = response.getData();
-                GitHubUserResponse.User gitHubUser = data.getUser();
+			HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody,
+					headers);
 
-                GithubUser user = new GithubUser();
-                user.setId(gitHubUser.getId());
-                user.setGithubUsername(gitHubUser.getLogin());
-                user.setName(gitHubUser.getName());
-                user.setEmail(gitHubUser.getEmail());
-                user.setAvatarUrl(gitHubUser.getAvatarUrl());
-                user.setBio(gitHubUser.getBio());
-                user.setFollowersCount(gitHubUser.getFollowers().getTotalCount());
-                user.setFollowingCount(gitHubUser.getFollowing().getTotalCount());
-                user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
+			GitHubUserResponse response = restTemplate.exchange(
+					githubGraphqlUrl,
+					HttpMethod.POST,
+					entity,
+					GitHubUserResponse.class).getBody();
 
-                user.setLastUpdated(Instant.now());
+			if (response != null && response.getData() != null &&
+					response.getData().getUser() != null) {
+				GitHubUserResponse.ResponseData data = response.getData();
+				GitHubUserResponse.User gitHubUser = data.getUser();
 
-                List<Repository> repositories = new ArrayList<>();
-                if (gitHubUser.getRepositories() != null && gitHubUser.getRepositories().getNodes() != null) {
-                    for (GitHubUserResponse.Repository repo : gitHubUser.getRepositories().getNodes()) {
-                        Repository mappedRepo = mapRepository(repo);
-                        repositories.add(mappedRepo);
-                    }
-                }
-                user.setRepositories(repositories);
+				User user = new User();
+				user.setGithubUsername(gitHubUser.getLogin());
+				user.setName(gitHubUser.getName());
+				user.setEmail(gitHubUser.getEmail());
+				user.setAvatarUrl(gitHubUser.getAvatarUrl());
+				user.setBio(gitHubUser.getBio());
+				user.setFollowersCount(gitHubUser.getFollowers().getTotalCount());
+				user.setFollowingCount(gitHubUser.getFollowing().getTotalCount());
+				user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
+				// TODO: Need to change the query as well as change this service method and GithubUserResponse.class to incorporate the totalContributions
+				user.setLastUpdated(Instant.now());
+				user.setTotalContributions(gitHubUser.getContributionsCollection().getTotalContributions().getTotalCommitsCount());
+				return user;
+			}
 
-                List<Contribution> contributions = new ArrayList<>();
-                GitHubUserResponse.ContributionsCollection contributionsCollection = gitHubUser.getContributionsCollection();
-                if (contributionsCollection != null) {
-                    Contribution commitContribution = new Contribution();
-                    commitContribution.setId("commit_" + gitHubUser.getId());
-                    commitContribution.setDate(Instant.now());
-                    commitContribution.setCount(contributionsCollection.getTotalCommitContributions());
-                    commitContribution.setType("COMMIT");
-                    contributions.add(commitContribution);
-
-                    Contribution prContribution = new Contribution();
-                    prContribution.setId("pr_" + gitHubUser.getId());
-                    prContribution.setDate(Instant.now());
-                    prContribution.setCount(contributionsCollection.getTotalPullRequestContributions());
-                    prContribution.setType("PULL_REQUEST");
-                    contributions.add(prContribution);
-
-                    Contribution issueContribution = new Contribution();
-                    issueContribution.setId("issue_" + gitHubUser.getId());
-                    issueContribution.setDate(Instant.now());
-                    issueContribution.setCount(contributionsCollection.getTotalIssueContributions());
-                    issueContribution.setType("ISSUE");
-                    contributions.add(issueContribution);
-                }
-                user.setContributions(contributions);
-
-                return Optional.of(user);
-            }
-
-            return Optional.empty();
-        } catch (Exception e) {
-            log.error("Error fetching user data for {}: {}", githubUsername, e.getMessage(), e);
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public void updateUserData(GithubUser user) {
-        // TODO: Implement user data update logic using GraphQL mutations
-    }
-
-    @Override
-    public List<GithubUser> searchUsers(String query, int limit, int offset) {
-        try {
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("query", query);
-            variables.put("first", limit);
-
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("query", queryHub.searchUsers());
-            requestBody.put("variables", variables);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + githubToken);
-            headers.set("Content-Type", "application/json");
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-            GitHubSearchResponse response = restTemplate.exchange(
-                    githubGraphqlUrl,
-                    HttpMethod.POST,
-                    entity,
-                    GitHubSearchResponse.class).getBody();
-
-            if (response != null && response.getData() != null && response.getData().getSearch() != null) {
-                List<GithubUser> users = new ArrayList<>();
-                for (GitHubSearchResponse.User gitHubUser : response.getData().getSearch().getNodes()) {
-                    GithubUser user = new GithubUser();
-                    user.setId(gitHubUser.getId());
-                    user.setGithubUsername(gitHubUser.getLogin());
-                    user.setName(gitHubUser.getName());
-                    user.setEmail(gitHubUser.getEmail());
-                    user.setAvatarUrl(gitHubUser.getAvatarUrl());
-                    user.setBio(gitHubUser.getBio());
-                    user.setFollowersCount(gitHubUser.getFollowers().getTotalCount());
-                    user.setFollowingCount(gitHubUser.getFollowing().getTotalCount());
-                    user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
-
-                    // Map repositories
-                    List<Repository> repositories = new ArrayList<>();
-                    if (gitHubUser.getRepositories() != null && gitHubUser.getRepositories().getNodes() != null) {
-                        for (GitHubSearchResponse.Repository repo : gitHubUser.getRepositories().getNodes()) {
-                            repositories.add(mapRepository(repo));
-                        }
-                    }
-                    user.setRepositories(repositories);
-
-                    users.add(user);
-                }
-                return users;
-            }
-
-            return List.of();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        }
-    }
-
-    @Override
-    public GithubUser refreshUserData(String githubUsername) {
-        Optional<GithubUser> userData = fetchUserData(githubUsername);
-        if (userData.isPresent()) {
-            return userData.get();
-        }
-        throw new RuntimeException("Failed to refresh user data for: " + githubUsername);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public ContributionCalendar getContributionTimeSeries(String username) {
-        Map<String, String> variables = Map.of("username", username);
-        Map<String, Object> response = githubClient.executeQuery(queryHub.getContributionCalendar(), variables);
-
-        if (response == null) {
-            return new ContributionCalendar();
-        }
-
-        try {
-            Map<String, Object> user = (Map<String, Object>) response.get("user");
-            if (user == null) {
-                return new ContributionCalendar();
-            }
-
-            Map<String, Object> contributionsCollection = (Map<String, Object>) user.get("contributionsCollection");
-            if (contributionsCollection == null) {
-                return new ContributionCalendar();
-            }
+			return null;
+		} catch (Exception e) {
+			log.error("Error fetching user data for {}: {}", githubUsername,
+					e.getMessage(), e);
+			return null;
+		}
+	}
 
             Map<String, Object> contributionCalendar = (Map<String, Object>) contributionsCollection
                     .get("contributionCalendar");

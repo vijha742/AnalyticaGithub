@@ -10,7 +10,6 @@ public class GitHubUserResponse {
     @Data
     public static class ResponseData {
         private User user;
-        private RateLimit rateLimit;
     }
 
     @Data
@@ -64,10 +63,6 @@ public class GitHubUserResponse {
     @Data
     public static class ContributionsCollection {
         private contributionCalendar totalContributions;
-        private int totalCommitContributions;
-        private int totalPullRequestContributions;
-        private int totalIssueContributions;
-        private int totalRepositoryContributions;
     }
 
     @Data
@@ -81,4 +76,4 @@ public class GitHubUserResponse {
         private int remaining;
         private String resetAt;
     }
-} 
+}
