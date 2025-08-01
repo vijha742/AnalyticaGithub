@@ -91,9 +91,9 @@ public class AuthServiceImpl implements AuthService {
 			throw new AuthException("Invalid GitHub token or failed to verify with GitHub.", e);
 		}
 
-		if (!verifiedGithubUser.getUserName().equals(request.getUserObject().getName())) {
+		if (!verifiedGithubUser.getName().equals(request.getUserObject().getName())) {
 			log.error("Mismatch between frontend GitHub UserName ({}) and verified GitHub UserName ({})",
-					request.getUserObject().getName(), verifiedGithubUser.getUserName());
+					request.getUserObject().getName(), verifiedGithubUser.getName());
 			throw new AuthException("GitHub user ID mismatch. Potential tampering detected.");
 		}
 
@@ -124,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
 		final String username = jwtService.extractUsername(refreshToken);
 		if (username != null) {
 
-			User userDetails = gitHubService.findOrCreateUser(username);
+			User userDetails = gitHubService.findUser(username);
 			if (jwtService.isTokenValid(refreshToken, userDetails)) {
 				String newJwtToken = jwtService.generateToken(userDetails);
 				log.info("Generated new JWT for user: {} using refresh token.", username);

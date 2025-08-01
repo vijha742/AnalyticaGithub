@@ -1,17 +1,14 @@
-package com.vikas.service;
+ package com.vikas.service;
 
-import com.vikas.model.CodeMetrics;
-import com.vikas.model.ReadmeQuality;
-import com.vikas.model.Repository;
-import com.vikas.model.TechnicalProfile;
 
-import java.util.List;
+ import com.vikas.model.TechTimeline;
+ import com.vikas.model.TechnicalProfile;
 
-public interface RepositoryAnalyticsService {
-    List<ReadmeQuality> analyzeReadmeQuality(String username);
-
-    List<CodeMetrics> getCodeMetrics(String username);
-
-    TechnicalProfile getTechnicalProfile(String username);
-//    List<Repository> getImpactfulRepository(String username);
-}
+ public interface RepositoryAnalyticsService {
+// List<ReadmeQuality> analyzeReadmeQuality(String username);
+//
+// List<CodeMetrics> getCodeMetrics(String username);
+//
+ TechnicalProfile getTechnicalProfile(String username);
+////  List<GithubRepository> getImpactfulRepository(String username);
+ }

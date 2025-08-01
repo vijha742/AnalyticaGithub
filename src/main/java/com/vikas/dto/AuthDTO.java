@@ -1,7 +1,6 @@
 package com.vikas.dto;
 
-import java.util.Date;
-
+import java.time.LocalDate;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -23,7 +22,7 @@ public class AuthDTO {
     private int followersCount;
     private int followingCount;
     // private String location;
-    private Date created_at;
-    private Date updated_at;
+    private LocalDate created_at;
+    private LocalDate updated_at;
 
 }

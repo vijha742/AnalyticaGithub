@@ -7,6 +7,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,19 +21,20 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String githubUsername;
-
     @Column(nullable = false)
     private String name;
-
     private String email;
     private String avatarUrl;
     private String bio;
-    // private Role role;
-    private Integer followersCount;
-    private Integer followingCount;
-    private Integer publicReposCount;
-//    private Integer totalContributionsThisYear;
+    private int followersCount;
+    private int followingCount;
+    private int publicReposCount;
     private Integer totalContributions;
+
+
+//    private Integer totalContributionsThisYear;
+
+    private LocalDate createdAt;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<GithubRepository> userRepository;

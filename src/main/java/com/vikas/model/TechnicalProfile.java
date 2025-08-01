@@ -13,6 +13,6 @@ public class TechnicalProfile {
     private List<TechnologyUsage> toolingPreferences = new ArrayList<>();
     private float specializationScore;
     private float versatilityScore;
-    private float learningRate; // TODO: Haven't calculated it
-    private float experimentationFrequency; // TODO: Haven't calculated it
+    private float learningRate; // Haven't calculated it
+    private float experimentationFrequency; //  Haven't calculated it
 }

@@ -11,6 +11,7 @@ public class LanguageExpertise {
     private int linesOfCode;
     private float yearsOfExperience;
     private OffsetDateTime lastUsed;
+    private OffsetDateTime firstUsed;
     private ProficiencyLevel proficiencyLevel = ProficiencyLevel.BEGINNER;
     private int projectCount;
     // TODO: Is it really required...

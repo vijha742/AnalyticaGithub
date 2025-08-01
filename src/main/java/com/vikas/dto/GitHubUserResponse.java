@@ -68,6 +68,9 @@ public class GitHubUserResponse {
     @Data
     public static class contributionCalendar {
         private int totalCommitsCount;
+        private int totalPullRequestContributions;
+        private int totalIssueContributions;
+        private int totalRepositoryContributions;
     }
 
     @Data

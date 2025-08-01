@@ -52,8 +52,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
                 if (username != null &&
                                 SecurityContextHolder.getContext().getAuthentication() == null) {
-                        // TODO: Create fetchUser method in GitHubService
-                                User userDetails = gitHubService.findOrCreateUser(username);
+                                User userDetails = gitHubService.findUser(username);
 
                         if (jwtService.isTokenValid(jwt, userDetails)) {
                                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
