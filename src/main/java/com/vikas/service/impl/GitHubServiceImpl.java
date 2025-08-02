@@ -14,10 +14,12 @@ import org.springframework.stereotype.Service;
 import com.vikas.repository.UserRepository;
 import com.vikas.service.GitHubService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class GitHubServiceImpl implements GitHubService {
 
 //    @Value("${github.api.graphql-url}")

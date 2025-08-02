@@ -25,15 +25,15 @@ public class SuggestedUserController {
     @PostMapping
     public ResponseEntity<SuggestedUser> suggestUser(
             @RequestParam String githubUsername,
-            @RequestParam String suggestedBy) {
-        return ResponseEntity.ok(suggestedUserService.suggestUser(githubUsername, suggestedBy));
+            @RequestParam String team) {
+        return ResponseEntity.ok(suggestedUserService.suggestUser(githubUsername, team));
     }
 
     @GetMapping
-    public ResponseEntity<List<SuggestedUser>> getActiveSuggestedUsers() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<List<SuggestedUser>> getActiveSuggestedUsers(@RequestParam String team) {
         try {
-            List<SuggestedUser> users = suggestedUserService.getActiveSuggestedUsersWithTimeoutForUser(username);
+            List<SuggestedUser> users =
+                    suggestedUserService.getAllActiveUsers(team);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             log.error("Failed to fetch suggested users", e);
@@ -42,14 +42,16 @@ public class SuggestedUserController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
-        suggestedUserService.deactivateUser(id);
-        return ResponseEntity.ok().build();
-    }
+//    @DeleteMapping("/{id}")
+//    public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
+//        suggestedUserService.deactivateUser(id);
+//        return ResponseEntity.ok().build();
+//    }
 
-    @GetMapping("/check/{githubUsername}")
-    public ResponseEntity<Boolean> isUserSuggested(@PathVariable String githubUsername) {
-        return ResponseEntity.ok(suggestedUserService.isUserSuggested(githubUsername));
-    }
+//    @GetMapping("/check/{githubUsername}")
+//    public ResponseEntity<Boolean> isUserSuggested(@PathVariable String
+//                                                           githubUsername) {
+//        return
+//                ResponseEntity.ok(suggestedUserService.isUserSuggested(githubUsername));
+//    }
 }

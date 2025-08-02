@@ -62,15 +62,16 @@ public class GitHubUserResponse {
 
     @Data
     public static class ContributionsCollection {
+        private int totalCommitsCount;
+        private int totalPullRequestContributions;
+        private int totalIssueContributions;
+        private int totalRepositoryContributions;
         private contributionCalendar totalContributions;
     }
 
     @Data
     public static class contributionCalendar {
-        private int totalCommitsCount;
-        private int totalPullRequestContributions;
-        private int totalIssueContributions;
-        private int totalRepositoryContributions;
+        private int totalContributions;
     }
 
     @Data

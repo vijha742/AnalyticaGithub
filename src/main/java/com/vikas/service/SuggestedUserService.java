@@ -1,22 +1,24 @@
-package com.vikas.service;
+ package com.vikas.service;
 
-import com.vikas.model.SuggestedUser;
-import com.vikas.model.GithubUser;
-import java.util.List;
-import java.util.Optional;
+ import com.vikas.model.SuggestedUser;
+ import com.vikas.model.User;
 
-public interface SuggestedUserService {
-    SuggestedUser suggestUser(String githubUsername, String suggestedBy);
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.UUID;
 
-    SuggestedUser refreshUserData(String githubUsername);
-
-    List<SuggestedUser> getAllActiveUsers();
-
-    Optional<SuggestedUser> getUserByUsername(String githubUsername);
-
-    List<SuggestedUser> getActiveSuggestedUsersWithTimeoutForUser(String username);
-
-    void deactivateUser(Long id);
-
-    boolean isUserSuggested(String githubUsername);
-}
+ public interface SuggestedUserService {
+ SuggestedUser suggestUser(String githubUsername, String team);
+//
+// SuggestedUser refreshUserData(String githubUsername);
+ List<SuggestedUser> getAllActiveUsers(String team);
+//
+// Optional<SuggestedUser> getUserByUsername(String githubUsername);
+//
+// List<SuggestedUser> getActiveSuggestedUsersWithTimeoutForUser(String
+// username);
+//
+// void deactivateUser(Long id);
+//
+// boolean isUserSuggested(String githubUsername);
+ }

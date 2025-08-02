@@ -28,8 +28,6 @@ public class AuthConfig {
                                 authorize -> authorize
                                         .requestMatchers("/api/public/**", "/auth/**")
                                         .permitAll()
-                                        .requestMatchers("/api/admin/**")
-                                        .hasRole("ADMIN")
                                         .anyRequest()
                                         .authenticated());
                 return http.build();

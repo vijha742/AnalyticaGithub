@@ -53,10 +53,12 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 if (username != null &&
                                 SecurityContextHolder.getContext().getAuthentication() == null) {
                                 User userDetails = gitHubService.findUser(username);
-
+                        Collection<GrantedAuthority> authorities = Arrays.asList(
+                                new SimpleGrantedAuthority("ROLE_USER")
+                        );
                         if (jwtService.isTokenValid(jwt, userDetails)) {
                                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                                userDetails, null);
+                                                userDetails, null, authorities);
                                 authToken.setDetails(
                                                 new WebAuthenticationDetailsSource().buildDetails(request));
                                 SecurityContextHolder.getContext().setAuthentication(authToken);

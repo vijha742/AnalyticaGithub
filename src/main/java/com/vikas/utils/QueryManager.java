@@ -22,16 +22,33 @@ public class QueryManager {
                           following {
                               totalCount
                           }
-                          repositories(privacy: PUBLIC) {
+                          repositories(first: 100) {
                               totalCount
+                              nodes {
+                                  id
+                                  name
+                                  description
+                                  primaryLanguage {
+                                      name
+                                  }
+                                  stargazerCount
+                                  forkCount
+                                  isPrivate
+                                  createdAt
+                                  updatedAt
+                              }
                           }
-                          contributionsCollection(from: "2008-01-01T00:00:00Z") {
+                          contributionsCollection {
+                              totalCommitContributions
+                              totalPullRequestContributions
+                              totalIssueContributions
+                              totalRepositoryContributions
                               contributionCalendar {
-                                  totalContributions
+                                 totalContributions
                               }
                           }
                       }
-                  }
+                }
                 """;
     }
 
@@ -264,19 +281,3 @@ public class QueryManager {
 }
 
 
-//repositories(first: 100) {
-//    totalCount
-//    nodes {
-//        id
-//                name
-//        description
-//        primaryLanguage {
-//            name
-//        }
-//        stargazerCount
-//                forkCount
-//        isPrivate
-//                createdAt
-//        updatedAt
-//    }
-//}

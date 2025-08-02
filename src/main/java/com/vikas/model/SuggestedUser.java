@@ -1,33 +1,45 @@
 package com.vikas.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
-@Getter
-@Setter
 @Entity
+@Data
 @Table(name = "suggested_users")
 public class SuggestedUser {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
     @Column(unique = true, nullable = false)
     private String githubUsername;
+    @Column(nullable = false)
+    private String name;
+    private String email;
+    private String avatarUrl;
+    private String bio;
+    private int followersCount;
+    private int followingCount;
+    private int publicReposCount;
+    private Integer totalContributions;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    private User suggestedBy;
 
     @Column(nullable = false)
-    private String suggestedBy;
-
-    @Column(nullable = false)
-    private String group;
+    private String team;
 
     @Column(nullable = false)
     private Instant suggestedAt;
@@ -35,19 +47,15 @@ public class SuggestedUser {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
-    // GitHub User Data
-    private String name;
-    private String email;
-    private String avatarUrl;
-    private String bio;
-    private Integer followersCount;
-    private Integer followingCount;
-    private Integer publicReposCount;
-    private Integer totalContributions;
+    private Integer pullRequestsCount;
+    private Integer issuesCount;
+    private Integer commitsCount;
 
+//    @JsonIgnore
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<Repository> repositories;
+    private List<SuggestedGithubRepository> repositories;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
@@ -59,4 +67,5 @@ public class SuggestedUser {
     protected void onCreate() {
         suggestedAt = Instant.now();
     }
+
 }

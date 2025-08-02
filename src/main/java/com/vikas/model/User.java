@@ -1,5 +1,6 @@
 package com.vikas.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vikas.model.UserReadmeAnalysis;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -36,9 +37,11 @@ public class User {
 
     private LocalDate createdAt;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<GithubRepository> userRepository;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Contribution> contributions;
 
