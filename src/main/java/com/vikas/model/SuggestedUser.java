@@ -47,9 +47,9 @@ public class SuggestedUser {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
-    private Integer pullRequestsCount;
-    private Integer issuesCount;
-    private Integer commitsCount;
+    private int pullRequestsCount;
+    private int issuesCount;
+    private int commitsCount;
 
 //    @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
