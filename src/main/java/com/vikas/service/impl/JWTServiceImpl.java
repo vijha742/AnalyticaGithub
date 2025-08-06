@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+
 @Service
 @Slf4j
 public class JWTServiceImpl implements JWTService {
@@ -40,6 +42,7 @@ public class JWTServiceImpl implements JWTService {
 
 	@Override
 	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+		log.info("Extracting claims from token: {}", token);
 		final Claims claims = extractAllClaims(token);
 		return claimsResolver.apply(claims);
 	}
@@ -60,21 +63,31 @@ public class JWTServiceImpl implements JWTService {
 	}
 
 	private String buildToken(Map<String, Object> extraClaims, User userDetails, long expiration) {
-		return Jwts
-				.builder()
-				.claims(extraClaims)
-				.subject(userDetails.getGithubUsername())
-				.issuedAt(new Date(System.currentTimeMillis()))
-				.expiration(new Date(System.currentTimeMillis() + expiration))
-				.signWith(getSignInKey(), SignatureAlgorithm.HS256)
-				.compact();
+		try {
+			return Jwts
+					.builder()
+					.claims(extraClaims)
+					.subject(userDetails.getGithubUsername())
+					.issuedAt(new Date(System.currentTimeMillis()))
+					.expiration(new Date(System.currentTimeMillis() + expiration))
+					.signWith(getSignInKey(), SignatureAlgorithm.HS256)
+					.compact();
+		} catch (Exception e) {
+			log.error("Error building JWT token: {}", e.getMessage());
+			throw new RuntimeException("Failed to generate JWT token", e);
+		}
 	}
 
 	@Override
 	public boolean isTokenValid(String token, User userDetails) {
-		final String username = extractUsername(token);
-		return (username.equals(userDetails.getGithubUsername())) &&
-				!isTokenExpired(token);
+		try {
+			final String username = extractUsername(token);
+			return (username.equals(userDetails.getGithubUsername())) &&
+					!isTokenExpired(token);
+		} catch (Exception e) {
+			log.warn("Token validation failed: {}", e.getMessage());
+			return false;
+		}
 	}
 
 	private boolean isTokenExpired(String token) {
@@ -86,12 +99,17 @@ public class JWTServiceImpl implements JWTService {
 	}
 
 	private Claims extractAllClaims(String token) {
-		return Jwts
-				.parser()
-				.setSigningKey(getSignInKey())
-				.build()
-				.parseClaimsJws(token)
-				.getBody();
+		try {
+			return Jwts
+					.parser()
+					.verifyWith((SecretKey) getSignInKey())
+					.build()
+					.parseSignedClaims(token)
+					.getPayload();
+		} catch (Exception e) {
+			log.error("Error parsing JWT token: {}", e.getMessage());
+			throw new RuntimeException("Invalid JWT token", e);
+		}
 	}
 
 	private Key getSignInKey() {

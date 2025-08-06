@@ -28,4 +28,11 @@
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/refresh-jwt")
+     public  ResponseEntity<?> refreshJwt(@RequestBody String req) {
+            System.out.println("RefreshJwtRequest: " + req);
+            AuthResponse response = authService.refreshAccessToken(req);
+            return ResponseEntity.ok(response);
+    }
+
  }

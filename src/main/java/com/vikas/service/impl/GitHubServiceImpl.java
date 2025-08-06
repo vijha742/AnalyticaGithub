@@ -51,7 +51,9 @@ public class GitHubServiceImpl implements GitHubService {
                     // newUser.setTotalContributions(githubUser.getTotalContributions());
                     TechnicalProfile techAnalysis = new TechnicalProfile();
                     techAnalysis = repoService.getTechnicalProfile(githubUser.getUserName());
+                    newUser.setTechnicalProfile(techAnalysis);
                     TechTimeline userTech = new TechTimeline(techAnalysis);
+                    newUser.setUserTech(userTech);
                     newUser.setLastUpdated(Instant.now());
                     System.out.println("Reached: Last updated: " + newUser.getLastUpdated());
                     return userRepository.save(newUser);

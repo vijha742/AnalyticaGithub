@@ -1,5 +1,6 @@
 package com.vikas.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.util.List;
 
@@ -62,15 +63,17 @@ public class GitHubUserResponse {
 
     @Data
     public static class ContributionsCollection {
+        @JsonProperty("totalCommitContributions")
         private int totalCommitsCount;
         private int totalPullRequestContributions;
         private int totalIssueContributions;
         private int totalRepositoryContributions;
-        private contributionCalendar totalContributions;
+        @JsonProperty("contributionCalendar")
+        private ContributionCalendar totalContributions;
     }
 
     @Data
-    public static class contributionCalendar {
+    public static class ContributionCalendar {
         private int totalContributions;
     }
 
