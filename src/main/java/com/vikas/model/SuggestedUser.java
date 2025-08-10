@@ -32,7 +32,7 @@ public class SuggestedUser {
     private int followersCount;
     private int followingCount;
     private int publicReposCount;
-    private Integer totalContributions;
+    private int totalContributions;
 
     @ManyToOne
     @JoinColumn(nullable = false)
@@ -57,6 +57,8 @@ public class SuggestedUser {
     @Column(columnDefinition = "jsonb")
     private List<SuggestedGithubRepository> repositories;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<Contribution> contributions;

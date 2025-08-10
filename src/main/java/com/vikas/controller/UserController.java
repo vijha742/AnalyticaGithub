@@ -1,6 +1,8 @@
 package com.vikas.controller;
 
+import com.vikas.model.Contribution;
 import com.vikas.model.User;
+import com.vikas.service.AnalyticsService;
 import com.vikas.service.GitHubService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final GitHubService gitHubService;
+    private final AnalyticsService analyticsService;
 
     @GetMapping("/{username}")
     public ResponseEntity<?> getUserData(@PathVariable String username) {
@@ -29,15 +32,15 @@ public class UserController {
 //        return ResponseEntity.ok("ping...");
 //    }
 //
-//    @GetMapping("/{username}/contrib-cal")
-//    public ResponseEntity<?> contributionsTimeSeries(@PathVariable String
-//                                                             username) {
-//        ContributionCalendar data =
-//                gitHubService.getContributionTimeSeries(username);
-//        if (data != null) {
-//            return ResponseEntity.ok(data);
-//        } else return ResponseEntity.notFound().build();
-//    }
+    @GetMapping("/{username}/contrib-cal")
+    public ResponseEntity<?> contributionsTimeSeries(@PathVariable String
+                                                             username, @RequestParam String mode) {
+        Contribution data =
+                analyticsService.getContributions(username, mode);
+        if (data != null) {
+            return ResponseEntity.ok(data);
+        } else return ResponseEntity.notFound().build();
+    }
 //
 //    // @GetMapping("/rate-limit")
 //    // public ResponseEntity<?> getRateLimit() {

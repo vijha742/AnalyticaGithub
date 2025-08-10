@@ -1,10 +1,11 @@
 package com.vikas.service;
 
-import com.vikas.model.timeseries.ContributionCalendar;
-
+import com.vikas.model.Contribution;
 
 public interface AnalyticsService {
 
-    ContributionCalendar getContributionCalendar(String username);
+    Contribution getContributions(String username, String mode);
+
+    Contribution getContributionCalendar(String username, String mode);
 
 }

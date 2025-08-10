@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface ContributionsRepository extends JpaRepository<Contribution, UUID> {
     Optional<Contribution> findByUserId(UUID userId);
     Boolean existsByUserId(UUID userId);
+    Optional<Contribution> findByUser_GithubUsernameAndMode(String username, String mode);
 }
