@@ -20,6 +20,7 @@ import java.util.Optional;
 // void updateUserData(User user);
 
 //  boolean isRateLimitExceeded();
+  List<User> searchUsers(String query, int limit);
 
 // List<User> searchUsers(String query, int limit, int offset);
 

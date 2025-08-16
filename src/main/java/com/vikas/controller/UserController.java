@@ -42,6 +42,9 @@ public class UserController {
         if (data != null) {
             return ResponseEntity.ok(data);
         } else return ResponseEntity.notFound().build();
+    @GetMapping("/search")
+    public List<User> searchUsers(@RequestParam String keyword, @RequestParam Integer limit) {
+        return gitHubService.searchUsers(keyword, limit != null ? limit : 10);
     }
 //
 //    // @GetMapping("/rate-limit")

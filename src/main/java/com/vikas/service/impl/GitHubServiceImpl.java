@@ -4,11 +4,15 @@ import java.time.Instant;
 import java.util.*;
 
 import com.vikas.dto.AuthDTO;
+import com.vikas.model.GithubRepository;
 import com.vikas.model.TechTimeline;
 import com.vikas.model.TechnicalProfile;
 import com.vikas.model.User;
 import com.vikas.service.RepositoryAnalyticsService;
+import com.vikas.utils.GithubGraphQLClient;
+import com.vikas.utils.QueryManager;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -23,14 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class GitHubServiceImpl implements GitHubService {
 
-//    @Value("${github.api.graphql-url}")
-//    private String githubGraphqlUrl;
-//
-//    @Value("${github.api.token}")
-//    private String githubToken;
+	@Value("${github.api.graphql-url}")
+	private String githubGraphqlUrl;
 
-    private final UserRepository userRepository;
-    private final RepositoryAnalyticsService repoService;
+	@Value("${github.api.token}")
+	private String githubToken;
 
     @Override
     public User findOrCreateUser(AuthDTO githubUser) {
@@ -60,6 +61,10 @@ public class GitHubServiceImpl implements GitHubService {
                     return userRepository.save(newUser);
                 });
     }
+	private final UserRepository userRepository;
+	private final RepositoryAnalyticsService repoService;
+	private final QueryManager queryHub;
+	private final GithubGraphQLClient githubClient;
 
     @Override
     public User findUser(String Username) {
@@ -149,6 +154,66 @@ public class GitHubServiceImpl implements GitHubService {
 //            return null;
 //        }
 //    }
+	@Override
+	public List<User> searchUsers(String query, int limit) {
+		try {
+			Map<String, Object> response = githubClient.executeQuery(queryHub.searchUsers(),
+					Map.of("query", query, "first", limit));
+			if (response != null && response.get("search") instanceof Map) {
+				Map<String, Object> searchMap = (Map<String, Object>) response.get("search");
+				Object nodesObj = searchMap.get("nodes");
+				if (nodesObj instanceof List) {
+					List<User> users = new ArrayList<>();
+					List<?> nodes = (List<?>) nodesObj;
+					for (Object nodeObj : nodes) {
+						if (nodeObj instanceof Map) {
+							Map<String, Object> gitHubUser = (Map<String, Object>) nodeObj;
+							User user = new User();
+							user.setGithubUsername((String) gitHubUser.get("login"));
+							user.setName((String) gitHubUser.get("name"));
+							user.setEmail((String) gitHubUser.get("email"));
+							user.setAvatarUrl((String) gitHubUser.get("avatarUrl"));
+							user.setBio((String) gitHubUser.get("bio"));
+							int followersCount = 0;
+							if (gitHubUser.get("followers") instanceof Map) {
+								Map<String, Object> followers = (Map<String, Object>) gitHubUser
+										.get("followers");
+								Object totalFollowers = followers.get("totalCount");
+								if (totalFollowers instanceof Number) {
+									followersCount = ((Number) totalFollowers)
+											.intValue();
+								}
+							}
+							user.setFollowersCount(followersCount);
+							int followingCount = 0;
+							if (gitHubUser.get("following") instanceof Map) {
+								Map<String, Object> following = (Map<String, Object>) gitHubUser
+										.get("following");
+								Object totalFollowing = following.get("totalCount");
+								if (totalFollowing instanceof Number) {
+									followingCount = ((Number) totalFollowing)
+											.intValue();
+								}
+							}
+							user.setFollowingCount(followingCount);
+							int publicReposCount = 0;
+							if (gitHubUser.get("repositories") instanceof Map) {
+								Map<String, Object> repositories = (Map<String, Object>) gitHubUser
+										.get("repositories");
+								Object totalRepos = repositories.get("totalCount");
+								if (totalRepos instanceof Number) {
+									publicReposCount = ((Number) totalRepos)
+											.intValue();
+								}
+							}
+							user.setPublicReposCount(publicReposCount);
+							users.add(user);
+						}
+					}
+					System.out.println(users);
+					return users;
+				}
+			}
 
     //	public void updateUserData(User user) {
 //		// TODO: Implement user data update logic using GraphQL mutations
