@@ -1,35 +1,31 @@
- package com.vikas.service;
+package com.vikas.service;
 
- import com.vikas.dto.AuthDTO;
- import com.vikas.model.User;
- import org.springframework.security.core.userdetails.UserDetails;
- import
- org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.vikas.dto.AuthDTO;
+import com.vikas.model.User;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
- public interface GitHubService {
-// void updateRateLimit(GitHubUserResponse.RateLimit limit);
+public interface GitHubService {
 
- User findOrCreateUser(AuthDTO githubUser);
+  @Transactional
+  User findOrCreateUser(AuthDTO githubUser);
 
- User findUser(String githubUsername);
+  User findUser(String githubUsername);
+  // Optional<User> addUserData(String githubUsername);
+  // void updateUserData(User user);
 
-// Optional<User> addUserData(String githubUsername);
-// void updateUserData(User user);
+  // boolean isRateLimitExceeded();
 
-//  boolean isRateLimitExceeded();
   List<User> searchUsers(String query, int limit);
 
-// List<User> searchUsers(String query, int limit, int offset);
+  // User refreshUserData(String githubUsername);
 
-// User refreshUserData(String githubUsername);
+  // Time series data for charts
+  // ContributionCalendar getContributionTimeSeries(String username);
 
- // Time series data for charts
-// ContributionCalendar getContributionTimeSeries(String username);
-
- Optional<User> findByUsername(String username);
+  Optional<User> findByUsername(String username);
 
   List<String> createTeam(String team);
 

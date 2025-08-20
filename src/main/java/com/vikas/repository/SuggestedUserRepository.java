@@ -18,5 +18,5 @@ public interface SuggestedUserRepository extends JpaRepository<SuggestedUser, UU
 
     List<SuggestedUser> findByActiveTrue();
 
-    boolean existsByGithubUsername(String githubUsername);
+    boolean existsByGithubUsernameAndSuggestedByAndTeam(String githubUsername);
 }

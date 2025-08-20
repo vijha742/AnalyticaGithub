@@ -41,14 +41,17 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<GithubRepository> userRepository;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Contribution> contributions;
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+//    private List<Contribution> contributions;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private UserReadmeAnalysis userReadmeAnalysis;
 
+    private List<String> teams;
+
     @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private TechnicalProfile technicalProfile;
 
     @JdbcTypeCode(SqlTypes.JSON)

@@ -52,7 +52,7 @@ public class SuggestedUser {
     private int commitsCount;
 
 //    @JsonIgnore
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<SuggestedGithubRepository> repositories;

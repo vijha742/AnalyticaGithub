@@ -10,7 +10,7 @@
  public interface SuggestedUserService {
  SuggestedUser suggestUser(String githubUsername, String team);
 //
-// SuggestedUser refreshUserData(String githubUsername);
+ SuggestedUser refreshUserData(String githubUsername, String team);
  List<SuggestedUser> getAllActiveUsers(String team);
 //
 // Optional<SuggestedUser> getUserByUsername(String githubUsername);

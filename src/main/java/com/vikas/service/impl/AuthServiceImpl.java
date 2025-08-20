@@ -113,6 +113,7 @@ public class AuthServiceImpl implements AuthService {
 				.jwtToken(jwtToken)
 				.refreshToken(refreshToken)
 				.message("Authentication successful")
+				.userData(user)
 				.build();
 	}
 

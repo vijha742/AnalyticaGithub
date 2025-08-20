@@ -37,16 +37,12 @@ public class UserController {
 
     //
     @GetMapping("/{username}/contrib-cal")
-    public ResponseEntity<?> contributionsTimeSeries(@PathVariable String
-                                                             username, @RequestParam String mode) {
-        Contribution data =
-                analyticsService.getContributions(username, mode);
+    public ResponseEntity<?> contributionsTimeSeries(@PathVariable String username, @RequestParam String mode) {
+        Contribution data = analyticsService.getContributions(username, mode);
         if (data != null) {
             return ResponseEntity.ok(data);
-        } else return ResponseEntity.notFound().build();
-    @GetMapping("/search")
-    public List<User> searchUsers(@RequestParam String keyword, @RequestParam Integer limit) {
-        return gitHubService.searchUsers(keyword, limit != null ? limit : 10);
+        } else
+            return ResponseEntity.notFound().build();
     }
     //
     // // @GetMapping("/rate-limit")

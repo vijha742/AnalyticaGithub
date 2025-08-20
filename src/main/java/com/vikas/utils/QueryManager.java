@@ -22,6 +22,7 @@ public class QueryManager {
                           following {
                               totalCount
                           }
+                          updatedAt
                           repositories(first: 100) {
                               totalCount
                               nodes {
@@ -39,13 +40,13 @@ public class QueryManager {
                               }
                           }
                           contributionsCollection {
-                              totalCommitContributions
-                              totalPullRequestContributions
-                              totalIssueContributions
-                              totalRepositoryContributions
-                              contributionCalendar {
-                                 totalContributions
-                              }
+                             totalIssueContributions
+                             totalCommitContributions
+                             totalPullRequestContributions
+                             totalRepositoryContributions
+                             contributionCalendar {
+                               totalContributions
+                             }
                           }
                       }
                 }
@@ -54,8 +55,8 @@ public class QueryManager {
 
     public String searchUsers() {
         return """
-                query($query: String!, $first: Int!, $after: String) {
-                    search(query: $query, type: USER, first: $first, after: $after) {
+                query($query: String!, $first: Int!) {
+                    search(query: $query, type: USER, first: $first) {
                         nodes {
                             ... on User {
                                 id
@@ -72,27 +73,6 @@ public class QueryManager {
                                 }
                                 repositories(first: 100) {
                                     totalCount
-                                    nodes {
-                                        id
-                                        name
-                                        description
-                                        primaryLanguage {
-                                            name
-                                        }
-                                        stargazerCount
-                                        forkCount
-                                        isPrivate
-                                        viewerCanAdminister
-                                        createdAt
-                                        updatedAt
-                                        repositoryTopics(first: 100) {
-                                            nodes {
-                                                topic {
-                                                    name
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -106,6 +86,9 @@ public class QueryManager {
                query($username: String!) {
                  user(login: $username) {
                    contributionsCollection {
+                        totalIssueContributions
+                        totalCommitContributions
+                        totalPullRequestContributions
                      contributionCalendar {
                        totalContributions
                        weeks {
