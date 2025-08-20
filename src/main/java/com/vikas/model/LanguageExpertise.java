@@ -1,11 +1,17 @@
 package com.vikas.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LanguageExpertise {
     private String language = "";
     private int linesOfCode;
@@ -25,6 +31,9 @@ public class LanguageExpertise {
         if (this.lastUsed == null || this.lastUsed.isBefore(lastUpdatedAt)) {
             this.lastUsed = lastUpdatedAt;
         }
+        if(this.firstUsed == null || this.firstUsed.isAfter(createdAt)) this.firstUsed = createdAt;
+
+
         if (this.lastUsed != null && createdAt != null) {
             Duration experienceDuration = Duration.between(createdAt, this.lastUsed);
             float calculatedYears = experienceDuration.toDays() / 365.25f;

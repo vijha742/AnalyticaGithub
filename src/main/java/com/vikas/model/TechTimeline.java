@@ -1,15 +1,20 @@
 package com.vikas.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TechTimeline {
-    private List<projectTime> projectTimeList;
-    private List<TechnologyTimeline> technologyUsageList;
+    private List<projectTime> projectTimeList = new ArrayList<>();
+    private List<TechnologyTimeline> technologyUsageList = new ArrayList<>();
 
     // TODO: Also get the project time list from repo Analysis
     public TechTimeline (TechnicalProfile technicalProfile) {
@@ -53,6 +58,8 @@ public class TechTimeline {
 }
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 class projectTime {
     private String name;
     private LocalDate createdAt;
@@ -60,6 +67,8 @@ class projectTime {
 }
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 class TechnologyTimeline {
     private String name;
     private LocalDate firstUsed;

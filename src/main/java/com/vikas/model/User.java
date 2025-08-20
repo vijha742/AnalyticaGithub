@@ -62,4 +62,9 @@ public class User {
     protected void onUpdate() {
         lastUpdated = Instant.now();
     }
+
+    @Override
+    public String toString() {
+        return this.githubUsername;
+    }
 }
