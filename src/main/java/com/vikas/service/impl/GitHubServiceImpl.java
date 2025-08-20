@@ -9,6 +9,7 @@ import com.vikas.model.TechnicalProfile;
 import com.vikas.model.User;
 import com.vikas.service.RepositoryAnalyticsService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.vikas.repository.UserRepository;
@@ -345,5 +346,16 @@ public class GitHubServiceImpl implements GitHubService {
     public Optional<User> findByUsername(String username) {
         return userRepository.findByGithubUsername(username);
     }
+
+	@Override
+	public List<String> createTeam(String team) {
+		User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		String username = authenticatedUser.getGithubUsername();
+		User user = userRepository.findByGithubUsername(username)
+				.orElseThrow(() -> new RuntimeException("User not found: " + username));
+		user.getTeams().add(team);
+		userRepository.save(user);
+		return user.getTeams();
+	}
 
 }

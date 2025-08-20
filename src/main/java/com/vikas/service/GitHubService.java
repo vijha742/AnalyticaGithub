@@ -6,8 +6,8 @@
  import
  org.springframework.security.core.userdetails.UsernameNotFoundException;
 
- import java.util.List;
- import java.util.Optional;
+import java.util.List;
+import java.util.Optional;
 
  public interface GitHubService {
 // void updateRateLimit(GitHubUserResponse.RateLimit limit);
@@ -30,4 +30,6 @@
 
  Optional<User> findByUsername(String username);
 
- }
+  List<String> createTeam(String team);
+
+}

@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/public/users")
 @RequiredArgsConstructor
@@ -46,4 +48,12 @@ public class UserController {
 //    // public ResponseEntity<?> getRateLimit() {
 //    // return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
 //    // }
+    @PostMapping("/team")
+    public ResponseEntity<List<String>> createTeam(@RequestParam String teamName) {
+        List<String> teams = gitHubService.createTeam(teamName);
+        if (teams != null) {
+            return ResponseEntity.ok(teams);
+        } else return ResponseEntity.notFound().build();
+
+    }
 }
