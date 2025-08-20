@@ -34,25 +34,20 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                         HttpServletRequest request,
                         HttpServletResponse response,
                         FilterChain filterChain) throws ServletException, IOException {
-                System.out.println("Hey.... JWTAuthenticationFilter is invoked");
                 final String authHeader = request.getHeader("Authorization");
                 final String jwt;
                 final String username;
 
                 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                         filterChain.doFilter(request, response);
-                        System.out.println("Authorization header is missing or does not start with 'Bearer '");
                         return;
                 }
 
                 jwt = authHeader.substring(7);
-                 log.debug("Extracted JWT: {}", jwt);
 
                 try {
-                        log.info("going to extract Username now....");
                         username = jwtService.extractUsername(jwt);
                 } catch (Exception e) {
-                         log.warn("JWT extraction failed: {}", e.getMessage());
                         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
                         return;
                 }
@@ -69,9 +64,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                 authToken.setDetails(
                                                 new WebAuthenticationDetailsSource().buildDetails(request));
                                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                                 log.info("User '{}' authenticated successfully via JWT.", username);
                         } else {
-                                 log.warn("JWT token is invalid for user: {}", username);
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
                                 return;
                         }

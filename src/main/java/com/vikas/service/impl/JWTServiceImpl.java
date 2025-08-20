@@ -42,7 +42,6 @@ public class JWTServiceImpl implements JWTService {
 
 	@Override
 	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-		log.info("Extracting claims from token: {}", token);
 		final Claims claims = extractAllClaims(token);
 		return claimsResolver.apply(claims);
 	}
@@ -73,7 +72,6 @@ public class JWTServiceImpl implements JWTService {
 					.signWith(getSignInKey(), SignatureAlgorithm.HS256)
 					.compact();
 		} catch (Exception e) {
-			log.error("Error building JWT token: {}", e.getMessage());
 			throw new RuntimeException("Failed to generate JWT token", e);
 		}
 	}
@@ -85,7 +83,6 @@ public class JWTServiceImpl implements JWTService {
 			return (username.equals(userDetails.getGithubUsername())) &&
 					!isTokenExpired(token);
 		} catch (Exception e) {
-			log.warn("Token validation failed: {}", e.getMessage());
 			return false;
 		}
 	}
@@ -107,7 +104,6 @@ public class JWTServiceImpl implements JWTService {
 					.parseSignedClaims(token)
 					.getPayload();
 		} catch (Exception e) {
-			log.error("Error parsing JWT token: {}", e.getMessage());
 			throw new RuntimeException("Invalid JWT token", e);
 		}
 	}

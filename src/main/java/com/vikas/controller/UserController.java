@@ -28,12 +28,14 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
     }
-//
-//    @GetMapping("/test")
-//    public ResponseEntity<String> test() {
-//        return ResponseEntity.ok("ping...");
-//    }
-//
+
+    //
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("ping...");
+    }
+
+    //
     @GetMapping("/{username}/contrib-cal")
     public ResponseEntity<?> contributionsTimeSeries(@PathVariable String
                                                              username, @RequestParam String mode) {
@@ -46,11 +48,16 @@ public class UserController {
     public List<User> searchUsers(@RequestParam String keyword, @RequestParam Integer limit) {
         return gitHubService.searchUsers(keyword, limit != null ? limit : 10);
     }
-//
-//    // @GetMapping("/rate-limit")
-//    // public ResponseEntity<?> getRateLimit() {
-//    // return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
-//    // }
+    //
+    // // @GetMapping("/rate-limit")
+    // // public ResponseEntity<?> getRateLimit() {
+    // // return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
+    // // }
+
+    @GetMapping("/search")
+    public List<User> searchUsers(@RequestParam String keyword, @RequestParam Integer limit) {
+        return gitHubService.searchUsers(keyword, limit != null ? limit : 10);
+    }
     @PostMapping("/team")
     public ResponseEntity<List<String>> createTeam(@RequestParam String teamName) {
         List<String> teams = gitHubService.createTeam(teamName);

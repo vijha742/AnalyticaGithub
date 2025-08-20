@@ -87,7 +87,6 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			verifiedGithubUser = validate(request.getGithubToken());
 		} catch (AuthException e) {
-			log.error("GitHub token validation failed: {}", e.getMessage());
 			throw new AuthException("Invalid GitHub token or failed to verify with GitHub.", e);
 		}
 
@@ -98,17 +97,18 @@ public class AuthServiceImpl implements AuthService {
 		}
 
 		User user = gitHubService.findOrCreateUser(verifiedGithubUser);
-		log.info("User authenticated/created: {}", user.getGithubUsername());
 
 		String jwtToken = jwtService.generateToken(user);
 		String refreshToken = jwtService.generateRefreshToken(user);
-		log.info("Generated JWT and Refresh Token for user: {}",
-				user.getGithubUsername());
-//		This code creates a UsernamePasswordAuthenticationToken for the authenticated user and sets it in the Spring Security context. This step is needed to mark the user as authenticated for the current request, allowing Spring Security to recognize the user and apply authorization rules. Without this, the user would not be considered logged in by the application, and protected endpoints would not be accessible.
+		// This code creates a UsernamePasswordAuthenticationToken for the authenticated
+		// user and sets it in the Spring Security context. This step is needed to mark
+		// the user as authenticated for the current request, allowing Spring Security
+		// to recognize the user and apply authorization rules. Without this, the user
+		// would not be considered logged in by the application, and protected endpoints
+		// would not be accessible.
 		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
 				user, null, Collections.emptyList());
 		SecurityContextHolder.getContext().setAuthentication(authentication);
-
 		return AuthResponse.builder()
 				.jwtToken(jwtToken)
 				.refreshToken(refreshToken)
@@ -127,7 +127,6 @@ public class AuthServiceImpl implements AuthService {
 			User userDetails = gitHubService.findUser(username);
 			if (jwtService.isTokenValid(refreshToken, userDetails)) {
 				String newJwtToken = jwtService.generateToken(userDetails);
-				log.info("Generated new JWT for user: {} using refresh token.", username);
 				return AuthResponse.builder()
 						.jwtToken(newJwtToken)
 						.refreshToken(refreshToken) // Return the same refresh token
