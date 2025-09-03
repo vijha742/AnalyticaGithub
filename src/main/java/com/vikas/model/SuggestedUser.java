@@ -22,7 +22,7 @@ public class SuggestedUser {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(unique = true, nullable = false)
+    @Column( nullable = false)
     private String githubUsername;
     @Column(nullable = false)
     private String name;

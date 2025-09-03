@@ -48,56 +48,70 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         @Value("${github.api.token}")
         private String githubToken;
 
-        @Transactional
-        @Override
-        public SuggestedUser suggestUser(String githubUsername, String team) {
-                if (suggestedUserRepository.existsByGithubUsernameAndSuggestedByAndTeam(githubUsername)) {
-                        throw new RuntimeException("User has already been suggested: " + githubUsername);
-                }
-                var githubUser = addUserData(githubUsername)
-                                .orElseThrow(() -> new RuntimeException("Failed to fetch user data from GitHub"));
-                SuggestedUser suggestedUser = new SuggestedUser();
-                suggestedUser.setGithubUsername(githubUsername);
-                User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-                User suggestedBy = new User();
-                suggestedBy.setId(authenticatedUser.getId());
-                suggestedUser.setSuggestedBy(suggestedBy);
-                suggestedUser.setActive(true);
-                suggestedUser.setName(githubUser.getName());
-                suggestedUser.setEmail(githubUser.getEmail());
-                suggestedUser.setAvatarUrl(githubUser.getAvatarUrl());
-                suggestedUser.setBio(githubUser.getBio());
-                suggestedUser.setFollowersCount(githubUser.getFollowers().getTotalCount());
-                suggestedUser.setFollowingCount(githubUser.getFollowing().getTotalCount());
-                suggestedUser.setPublicReposCount(githubUser.getRepositories().getTotalCount());
-                suggestedUser.setPullRequestsCount(githubUser.getContributionsCollection() != null
-                                ? githubUser.getContributionsCollection().getTotalPullRequestContributions()
-                                : 0);
-                suggestedUser.setIssuesCount(githubUser.getContributionsCollection() != null
-                                ? githubUser.getContributionsCollection().getTotalIssueContributions()
-                                : 0);
-                suggestedUser.setCommitsCount(githubUser.getContributionsCollection() != null
-                                ? githubUser.getContributionsCollection().getTotalCommitsCount()
-                                : 0);
-                suggestedUser.setTotalContributions(githubUser.getContributionsCollection() != null
-                                && githubUser.getContributionsCollection().getTotalContributions() != null
-                                                ? githubUser.getContributionsCollection().getTotalContributions()
-                                                                .getTotalContributions()
-                                                : 0);
-                List<SuggestedGithubRepository> repositories = new ArrayList<>();
-                if (githubUser.getRepositories() != null && githubUser.getRepositories().getNodes() != null) {
-                        for (GitHubUserResponse.Repository repo : githubUser.getRepositories().getNodes()) {
-                                SuggestedGithubRepository mappedRepo = mapRepository(repo, suggestedUser);
-                                SuggestedGithubRepository createdRepo = repoRepository.save(mappedRepo);
-                                repositories.add(createdRepo);
-                        }
-                }
-                suggestedUser.setRepositories(repositories);
-                suggestedUser.setTeam(team);
-                suggestedUser.setLastRefreshed(Instant.now());
-                // TODO: fetch the user's contributionCalendar
-                return suggestedUserRepository.save(suggestedUser);
+    @Transactional
+    @Override
+    public SuggestedUser suggestUser(String githubUsername, String team) {
+        User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication()
+                .getPrincipal();
+        if (suggestedUserRepository.existsByGithubUsernameAndSuggestedByAndTeam(githubUsername,
+                authenticatedUser, team)) {
+            SuggestedUser user = suggestedUserRepository.findByGithubUsernameAndSuggestedByAndTeam(githubUsername,authenticatedUser, team);
+            user.setActive(true);
+            return suggestedUserRepository.save(user);
         }
+        var githubUser = addUserData(githubUsername)
+                .orElseThrow(() -> new RuntimeException(
+                        "Failed to fetch user data from GitHub"));
+        SuggestedUser suggestedUser = new SuggestedUser();
+        suggestedUser.setGithubUsername(githubUsername);
+        User suggestedBy = new User();
+        suggestedBy.setId(authenticatedUser.getId());
+        suggestedUser.setSuggestedBy(suggestedBy);
+        suggestedUser.setActive(true);
+        suggestedUser.setName(githubUser.getName());
+        suggestedUser.setEmail(githubUser.getEmail());
+        suggestedUser.setAvatarUrl(githubUser.getAvatarUrl());
+        suggestedUser.setBio(githubUser.getBio());
+        suggestedUser.setFollowersCount(githubUser.getFollowers().getTotalCount());
+        suggestedUser.setFollowingCount(githubUser.getFollowing().getTotalCount());
+        suggestedUser.setPublicReposCount(githubUser.getRepositories().getTotalCount());
+        suggestedUser.setPullRequestsCount(githubUser.getContributionsCollection() != null
+                ? githubUser.getContributionsCollection()
+                .getTotalPullRequestContributions()
+                : 0);
+        suggestedUser.setIssuesCount(githubUser.getContributionsCollection() != null
+                ? githubUser.getContributionsCollection()
+                .getTotalIssueContributions()
+                : 0);
+        suggestedUser.setCommitsCount(githubUser.getContributionsCollection() != null
+                ? githubUser.getContributionsCollection()
+                .getTotalCommitsCount()
+                : 0);
+        suggestedUser.setTotalContributions(githubUser.getContributionsCollection() != null
+                && githubUser.getContributionsCollection()
+                .getTotalContributions() != null
+                ? githubUser.getContributionsCollection()
+                .getTotalContributions()
+                .getTotalContributions()
+                : 0);
+        List<SuggestedGithubRepository> repositories = new ArrayList<>();
+        if (githubUser.getRepositories() != null
+                && githubUser.getRepositories().getNodes() != null) {
+            for (GitHubUserResponse.Repository repo : githubUser.getRepositories()
+                    .getNodes()) {
+                SuggestedGithubRepository mappedRepo = mapRepository(
+                        repo, suggestedUser);
+                SuggestedGithubRepository createdRepo = repoRepository
+                        .save(mappedRepo);
+                repositories.add(createdRepo);
+            }
+        }
+        suggestedUser.setRepositories(repositories);
+        suggestedUser.setTeam(team);
+        suggestedUser.setLastRefreshed(Instant.now());
+        // TODO: fetch the user's contributionCalendar
+        return suggestedUserRepository.save(suggestedUser);
+    }
 
         private Optional<GitHubUserResponse.User> addUserData(String githubUsername) {
                 try {
