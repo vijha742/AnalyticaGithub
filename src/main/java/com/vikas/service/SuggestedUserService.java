@@ -18,7 +18,7 @@
 // List<SuggestedUser> getActiveSuggestedUsersWithTimeoutForUser(String
 // username);
 //
-// void deactivateUser(Long id);
+ boolean deactivateUser(UUID id);
 //
 // boolean isUserSuggested(String githubUsername);
  }

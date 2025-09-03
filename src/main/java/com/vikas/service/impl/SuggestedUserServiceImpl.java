@@ -383,4 +383,16 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         // public boolean isUserSuggested(String githubUsername) {
         // return suggestedUserRepository.existsByGithubUsername(githubUsername);
         // }
+    @Override
+    @Transactional
+    public boolean deactivateUser(UUID id) {
+        SuggestedUser user = suggestedUserRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        user.setActive(false);
+        try {
+            suggestedUserRepository.save(user);
+            return true;
+        }  catch (Exception e) {
+            return false;
+        }
+    }
 }

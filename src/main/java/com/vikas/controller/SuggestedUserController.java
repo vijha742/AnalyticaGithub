@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -53,11 +54,12 @@ public class SuggestedUserController {
         }
     }
 
-    // @DeleteMapping("/{id}")
-    // public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
-    // suggestedUserService.deactivateUser(id);
-    // return ResponseEntity.ok().build();
-    // }
+     @DeleteMapping("/{id}")
+     public ResponseEntity<Void> deactivateUser(@PathVariable UUID id) {
+        boolean response = suggestedUserService.deactivateUser(id);
+        if (response) return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+     }
 
     // @GetMapping("/check/{githubUsername}")
     // public ResponseEntity<Boolean> isUserSuggested(@PathVariable String
