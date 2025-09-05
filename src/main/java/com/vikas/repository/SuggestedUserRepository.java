@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface SuggestedUserRepository extends JpaRepository<SuggestedUser, UUID> {
     Optional<SuggestedUser> findByGithubUsername(String githubUsername);
 
+    SuggestedUser findFirstByGithubUsername(String githubUsername);
     List<SuggestedUser> findByActiveTrueAndSuggestedByAndTeam(User suggestedBy, String team);
 
     SuggestedUser findByGithubUsernameAndTeam(String githubUsername, String team);

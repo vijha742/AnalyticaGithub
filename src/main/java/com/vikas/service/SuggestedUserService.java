@@ -22,6 +22,7 @@ public interface SuggestedUserService {
     //
     boolean deactivateUser(UUID id);
 
+    UserComparisonDTO compareTwoUsers(String githubUsername1, String githubUsername2);
 
     // boolean isUserSuggested(String githubUsername);
     List<SuggestedUser> getLeaderboard();
