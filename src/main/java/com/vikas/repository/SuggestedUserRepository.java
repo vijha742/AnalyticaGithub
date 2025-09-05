@@ -22,4 +22,6 @@ public interface SuggestedUserRepository extends JpaRepository<SuggestedUser, UU
 
     boolean existsByGithubUsernameAndSuggestedByAndTeam(String githubUsername, User suggestedBy, String team );
     List<SuggestedUser> findTop10ByOrderByTotalContributionsDesc();
+
+    List<SuggestedUser> findTop10BySuggestedByAndOrderByTotalContributionsDesc(User suggestedBy);
 }

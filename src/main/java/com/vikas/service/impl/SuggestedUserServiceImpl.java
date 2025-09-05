@@ -419,6 +419,9 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Override
     @Transactional
     public List<SuggestedUser> getLeaderboard() {
-        return suggestedUserRepository.findTop10ByOrderByTotalContributionsDesc();
+        User authenticatedUser =
+                (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return suggestedUserRepository.findTop10BySuggestedByAndOrderByTotalContributionsDesc(
+                authenticatedUser);
     }
 }
