@@ -1,10 +1,9 @@
 package com.vikas.service;
 
 import com.vikas.dto.AuthDTO;
-import com.vikas.exception.AuthException;
-import com.vikas.model.User;
 import com.vikas.dto.AuthResponse;
 import com.vikas.dto.SocialLoginRequest;
+import com.vikas.exception.AuthException;
 
 public interface AuthService {
 

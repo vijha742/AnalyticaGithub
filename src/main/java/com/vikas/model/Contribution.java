@@ -1,16 +1,16 @@
 package com.vikas.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -19,7 +19,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @Data
 @Entity
-@Table(name = "contributions", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "mode"}))
+@Table(
+        name = "contributions",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "mode"}))
 public class Contribution {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -29,6 +31,7 @@ public class Contribution {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private SuggestedUser user;
+
     private String mode;
 
     @JdbcTypeCode(SqlTypes.JSON)

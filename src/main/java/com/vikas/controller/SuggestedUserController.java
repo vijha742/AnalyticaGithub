@@ -2,10 +2,11 @@ package com.vikas.controller;
 
 import com.vikas.model.SuggestedUser;
 import com.vikas.service.SuggestedUserService;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -25,8 +26,7 @@ public class SuggestedUserController {
 
     @PostMapping
     public ResponseEntity<SuggestedUser> suggestUser(
-            @RequestParam String githubUsername,
-            @RequestParam String team) {
+            @RequestParam String githubUsername, @RequestParam String team) {
         return ResponseEntity.ok(suggestedUserService.suggestUser(githubUsername, team));
     }
 
@@ -37,15 +37,13 @@ public class SuggestedUserController {
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             log.error("Failed to fetch suggested users", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ArrayList<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
         }
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<SuggestedUser> refreshUser(
-            @RequestParam String githubUsername,
-            @RequestParam String team) {
+            @RequestParam String githubUsername, @RequestParam String team) {
         SuggestedUser user = suggestedUserService.refreshUserData(githubUsername, team);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -54,12 +52,13 @@ public class SuggestedUserController {
         }
     }
 
-     @DeleteMapping("/{id}")
-     public ResponseEntity<Void> deactivateUser(@PathVariable UUID id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivateUser(@PathVariable UUID id) {
         boolean response = suggestedUserService.deactivateUser(id);
         if (response) return ResponseEntity.ok().build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-     }
+    }
+
     // HACK: In the current implementation I am using that every user that user is gonna compare
     // would exist in SuggestedUserRepository...which can result in Mishap soon.
     @GetMapping("/compare")

@@ -1,9 +1,11 @@
 package com.vikas.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.vikas.model.UserReadmeAnalysis;
+
 import jakarta.persistence.*;
+
 import lombok.Data;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -22,8 +24,10 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String githubUsername;
+
     @Column(nullable = false)
     private String name;
+
     private String email;
     private String avatarUrl;
     private String bio;
@@ -32,8 +36,7 @@ public class User {
     private int publicReposCount;
     private Integer totalContributions;
 
-
-//    private Integer totalContributionsThisYear;
+    //    private Integer totalContributionsThisYear;
 
     private LocalDate createdAt;
 
@@ -41,9 +44,9 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<GithubRepository> userRepository;
 
-//    @JsonIgnore
-//    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-//    private List<Contribution> contributions;
+    //    @JsonIgnore
+    //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    //    private List<Contribution> contributions;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private UserReadmeAnalysis userReadmeAnalysis;

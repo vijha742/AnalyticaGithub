@@ -43,5 +43,4 @@ public class AnalyticsController {
         } else return ResponseEntity.notFound().build();
     }
 
-
 }
