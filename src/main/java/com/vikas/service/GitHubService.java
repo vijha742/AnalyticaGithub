@@ -2,6 +2,7 @@ package com.vikas.service;
 
 import com.vikas.dto.AuthDTO;
 import com.vikas.model.User;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -9,24 +10,26 @@ import java.util.Optional;
 
 public interface GitHubService {
 
-  @Transactional
-  User findOrCreateUser(AuthDTO githubUser);
+    @Transactional
+    User findOrCreateUser(AuthDTO githubUser);
 
-  User findUser(String githubUsername);
-  // Optional<User> addUserData(String githubUsername);
-  // void updateUserData(User user);
+    User findUser(String githubUsername);
 
-  // boolean isRateLimitExceeded();
+    // Optional<User> addUserData(String githubUsername);
+    // void updateUserData(User user);
 
-  List<User> searchUsers(String query, int limit);
+    // boolean isRateLimitExceeded();
 
-  // User refreshUserData(String githubUsername);
+    List<User> searchUsers(String query, int limit);
 
-  // Time series data for charts
-  // ContributionCalendar getContributionTimeSeries(String username);
+    // User refreshUserData(String githubUsername);
 
-  Optional<User> findByUsername(String username);
+    // Time series data for charts
+    // ContributionCalendar getContributionTimeSeries(String username);
 
-  List<String> createTeam(String team);
+    Optional<User> findByUsername(String username);
 
+    List<String> createTeam(String team);
+
+    List<User> getLeaderboard();
 }

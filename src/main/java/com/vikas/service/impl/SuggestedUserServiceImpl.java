@@ -2,18 +2,18 @@ package com.vikas.service.impl;
 
 import com.vikas.dto.GitHubUserResponse;
 import com.vikas.model.SuggestedGithubRepository;
+import com.vikas.model.SuggestedUser;
 import com.vikas.model.User;
 import com.vikas.repository.SuggestedUserRepoDataRepository;
-import com.vikas.repository.UserRepository;
-import com.vikas.utils.QueryManager;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import com.vikas.model.SuggestedUser;
 import com.vikas.repository.SuggestedUserRepository;
+import com.vikas.repository.UserRepository;
 import com.vikas.service.SuggestedUserService;
 import com.vikas.utils.GithubGraphQLClient;
+import com.vikas.utils.QueryManager;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -25,10 +25,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -51,17 +47,22 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Transactional
     @Override
     public SuggestedUser suggestUser(String githubUsername, String team) {
-        User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication()
-                .getPrincipal();
-        if (suggestedUserRepository.existsByGithubUsernameAndSuggestedByAndTeam(githubUsername,
-                authenticatedUser, team)) {
-            SuggestedUser user = suggestedUserRepository.findByGithubUsernameAndSuggestedByAndTeam(githubUsername,authenticatedUser, team);
+        User authenticatedUser =
+                (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (suggestedUserRepository.existsByGithubUsernameAndSuggestedByAndTeam(
+                githubUsername, authenticatedUser, team)) {
+            SuggestedUser user =
+                    suggestedUserRepository.findByGithubUsernameAndSuggestedByAndTeam(
+                            githubUsername, authenticatedUser, team);
             user.setActive(true);
             return suggestedUserRepository.save(user);
         }
-        var githubUser = addUserData(githubUsername)
-                .orElseThrow(() -> new RuntimeException(
-                        "Failed to fetch user data from GitHub"));
+        var githubUser =
+                addUserData(githubUsername)
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "Failed to fetch user data from GitHub"));
         SuggestedUser suggestedUser = new SuggestedUser();
         suggestedUser.setGithubUsername(githubUsername);
         User suggestedBy = new User();
@@ -75,34 +76,33 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         suggestedUser.setFollowersCount(githubUser.getFollowers().getTotalCount());
         suggestedUser.setFollowingCount(githubUser.getFollowing().getTotalCount());
         suggestedUser.setPublicReposCount(githubUser.getRepositories().getTotalCount());
-        suggestedUser.setPullRequestsCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalPullRequestContributions()
-                : 0);
-        suggestedUser.setIssuesCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalIssueContributions()
-                : 0);
-        suggestedUser.setCommitsCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalCommitsCount()
-                : 0);
-        suggestedUser.setTotalContributions(githubUser.getContributionsCollection() != null
-                && githubUser.getContributionsCollection()
-                .getTotalContributions() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalContributions()
-                .getTotalContributions()
-                : 0);
+        suggestedUser.setPullRequestsCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalPullRequestContributions()
+                        : 0);
+        suggestedUser.setIssuesCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalIssueContributions()
+                        : 0);
+        suggestedUser.setCommitsCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalCommitsCount()
+                        : 0);
+        suggestedUser.setTotalContributions(
+                githubUser.getContributionsCollection() != null
+                                && githubUser.getContributionsCollection().getTotalContributions()
+                                        != null
+                        ? githubUser
+                                .getContributionsCollection()
+                                .getTotalContributions()
+                                .getTotalContributions()
+                        : 0);
         List<SuggestedGithubRepository> repositories = new ArrayList<>();
         if (githubUser.getRepositories() != null
                 && githubUser.getRepositories().getNodes() != null) {
-            for (GitHubUserResponse.Repository repo : githubUser.getRepositories()
-                    .getNodes()) {
-                SuggestedGithubRepository mappedRepo = mapRepository(
-                        repo, suggestedUser);
-                SuggestedGithubRepository createdRepo = repoRepository
-                        .save(mappedRepo);
+            for (GitHubUserResponse.Repository repo : githubUser.getRepositories().getNodes()) {
+                SuggestedGithubRepository mappedRepo = mapRepository(repo, suggestedUser);
+                SuggestedGithubRepository createdRepo = repoRepository.save(mappedRepo);
                 repositories.add(createdRepo);
             }
         }
@@ -126,19 +126,21 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
             headers.set("Authorization", "Bearer " + githubToken);
             headers.set("Content-Type", "application/json");
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody,
-                    headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             // TODO: Call for repo-analysis for tech and userReadme Analysis...
             // TODO: Search ways to get all these three queries concutrently
-            GitHubUserResponse response = restTemplate.exchange(
-                    githubGraphqlUrl,
-                    HttpMethod.POST,
-                    entity,
-                    GitHubUserResponse.class).getBody();
-            if (response != null && response.getData() != null &&
-                    response.getData().getUser() != null) {
-                GitHubUserResponse.ResponseData data = response
-                        .getData();
+            GitHubUserResponse response =
+                    restTemplate
+                            .exchange(
+                                    githubGraphqlUrl,
+                                    HttpMethod.POST,
+                                    entity,
+                                    GitHubUserResponse.class)
+                            .getBody();
+            if (response != null
+                    && response.getData() != null
+                    && response.getData().getUser() != null) {
+                GitHubUserResponse.ResponseData data = response.getData();
                 GitHubUserResponse.User gitHubUser = data.getUser();
                 // TODO: Need to change the query as well as change this
                 // service method and
@@ -151,20 +153,18 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
             return Optional.empty();
 
         } catch (Exception e) {
-            log.error("Error fetching user data for {}: {}", githubUsername,
-                    e.getMessage());
+            log.error("Error fetching user data for {}: {}", githubUsername, e.getMessage());
             return Optional.empty();
         }
     }
 
-    private SuggestedGithubRepository mapRepository(GitHubUserResponse.Repository repo,
-                                                    SuggestedUser user) {
+    private SuggestedGithubRepository mapRepository(
+            GitHubUserResponse.Repository repo, SuggestedUser user) {
         SuggestedGithubRepository mappedRepo = new SuggestedGithubRepository();
         mappedRepo.setName(repo.getName());
         mappedRepo.setDescription(repo.getDescription());
-        mappedRepo.setLanguage(repo.getPrimaryLanguage() != null
-                ? repo.getPrimaryLanguage().getName()
-                : null);
+        mappedRepo.setLanguage(
+                repo.getPrimaryLanguage() != null ? repo.getPrimaryLanguage().getName() : null);
         mappedRepo.setStargazerCount(repo.getStargazerCount());
         mappedRepo.setForkCount(repo.getForkCount());
         mappedRepo.setIsPrivate(repo.isPrivate());
@@ -178,12 +178,15 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Transactional
     public SuggestedUser refreshUserData(String githubUsername, String team) {
         // TODO: Error and Exception Handling...
-        SuggestedUser suggestedUser = suggestedUserRepository
-                .findByGithubUsernameAndTeam(githubUsername, team);
+        SuggestedUser suggestedUser =
+                suggestedUserRepository.findByGithubUsernameAndTeam(githubUsername, team);
 
-        var githubUser = addUserData(githubUsername)
-                .orElseThrow(() -> new RuntimeException(
-                        "Failed to fetch user data from GitHub"));
+        var githubUser =
+                addUserData(githubUsername)
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "Failed to fetch user data from GitHub"));
 
         suggestedUser.setGithubUsername(githubUsername);
         suggestedUser.setActive(true);
@@ -194,34 +197,33 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         suggestedUser.setFollowersCount(githubUser.getFollowers().getTotalCount());
         suggestedUser.setFollowingCount(githubUser.getFollowing().getTotalCount());
         suggestedUser.setPublicReposCount(githubUser.getRepositories().getTotalCount());
-        suggestedUser.setPullRequestsCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalPullRequestContributions()
-                : 0);
-        suggestedUser.setIssuesCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalIssueContributions()
-                : 0);
-        suggestedUser.setCommitsCount(githubUser.getContributionsCollection() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalCommitsCount()
-                : 0);
-        suggestedUser.setTotalContributions(githubUser.getContributionsCollection() != null
-                && githubUser.getContributionsCollection()
-                .getTotalContributions() != null
-                ? githubUser.getContributionsCollection()
-                .getTotalContributions()
-                .getTotalContributions()
-                : 0);
+        suggestedUser.setPullRequestsCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalPullRequestContributions()
+                        : 0);
+        suggestedUser.setIssuesCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalIssueContributions()
+                        : 0);
+        suggestedUser.setCommitsCount(
+                githubUser.getContributionsCollection() != null
+                        ? githubUser.getContributionsCollection().getTotalCommitsCount()
+                        : 0);
+        suggestedUser.setTotalContributions(
+                githubUser.getContributionsCollection() != null
+                                && githubUser.getContributionsCollection().getTotalContributions()
+                                        != null
+                        ? githubUser
+                                .getContributionsCollection()
+                                .getTotalContributions()
+                                .getTotalContributions()
+                        : 0);
         List<SuggestedGithubRepository> repositories = new ArrayList<>();
         if (githubUser.getRepositories() != null
                 && githubUser.getRepositories().getNodes() != null) {
-            for (GitHubUserResponse.Repository repo : githubUser.getRepositories()
-                    .getNodes()) {
-                SuggestedGithubRepository mappedRepo = mapRepository(
-                        repo, suggestedUser);
-                SuggestedGithubRepository createdRepo = repoRepository
-                        .save(mappedRepo);
+            for (GitHubUserResponse.Repository repo : githubUser.getRepositories().getNodes()) {
+                SuggestedGithubRepository mappedRepo = mapRepository(repo, suggestedUser);
+                SuggestedGithubRepository createdRepo = repoRepository.save(mappedRepo);
                 repositories.add(createdRepo);
             }
         }
@@ -235,15 +237,10 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Override
     public List<SuggestedUser> getAllActiveUsers(String team) {
         return suggestedUserRepository.findByActiveTrueAndSuggestedByAndTeam(
-                (User) SecurityContextHolder.getContext()
-                        .getAuthentication()
-                        .getPrincipal(),
-                team);
+                (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), team);
     }
 
-    public void cpmpareUser() {
-
-    }
+    public void cpmpareUser() {}
 
     //
     // @Override
@@ -399,18 +396,29 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Override
     @Transactional
     public boolean deactivateUser(UUID id) {
-        SuggestedUser user = suggestedUserRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        SuggestedUser user =
+                suggestedUserRepository
+                        .findById(id)
+                        .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.setActive(false);
         try {
             suggestedUserRepository.save(user);
             return true;
-        }  catch (Exception e) {
+        } catch (Exception e) {
             return false;
         }
     }
+
+
     //
     // @Override
     // public boolean isUserSuggested(String githubUsername) {
     // return suggestedUserRepository.existsByGithubUsername(githubUsername);
     // }
+
+    @Override
+    @Transactional
+    public List<SuggestedUser> getLeaderboard() {
+        return suggestedUserRepository.findTop10ByOrderByTotalContributionsDesc();
+    }
 }
