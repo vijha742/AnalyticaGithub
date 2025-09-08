@@ -14,4 +14,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByGithubUsername(String githubUsername);
 
     List<User> findTop10ByOrderByTotalContributionsDesc();
+
+    List<User> findAll();
 }

@@ -1,5 +1,6 @@
 package com.vikas.service;
 
+import com.vikas.dto.MatchedPeerDTO;
 import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.SuggestedUser;
 
@@ -26,4 +27,8 @@ public interface SuggestedUserService {
 
     // boolean isUserSuggested(String githubUsername);
     List<SuggestedUser> getLeaderboard();
+
+    List<MatchedPeerDTO> getCompMatch();
+
+    List<MatchedPeerDTO> getSuppMatch();
 }

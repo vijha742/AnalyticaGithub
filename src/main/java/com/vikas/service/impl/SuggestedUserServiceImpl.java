@@ -2,6 +2,7 @@ package com.vikas.service.impl;
 
 import com.vikas.dto.CompResults;
 import com.vikas.dto.GitHubUserResponse;
+import com.vikas.dto.MatchedPeerDTO;
 import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.SuggestedGithubRepository;
 import com.vikas.model.SuggestedUser;
@@ -26,7 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -39,6 +45,7 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     private final QueryManager queryHub;
     private final RestTemplate restTemplate;
     private final SuggestedUserRepoDataRepository repoRepository;
+    private final PeerMatchingService peerMatcher;
 
     @Value("${github.api.graphql-url}")
     private String githubGraphqlUrl;
@@ -439,5 +446,17 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
                 (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return suggestedUserRepository.findTop10BySuggestedByAndOrderByTotalContributionsDesc(
                 authenticatedUser);
+    }
+
+    @Override
+    @Transactional
+    public List<MatchedPeerDTO> getCompMatch() {
+        return new ArrayList<MatchedPeerDTO>();
+    }
+
+    @Override
+    @Transactional
+    public List<MatchedPeerDTO> getSuppMatch() {
+        return peerMatcher.getSupplementingUser();
     }
 }

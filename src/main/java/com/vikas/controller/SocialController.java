@@ -28,4 +28,14 @@ public class SocialController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/p-match/c")
+    public ResponseEntity<?> matchPeersComplementary() {
+        return ResponseEntity.ok(suggestedUserService.getCompMatch());
+    }
+
+    @GetMapping("/p-match/s")
+    public ResponseEntity<?> matchPeersSupplementary() {
+        return ResponseEntity.ok(suggestedUserService.getSuppMatch());
+    }
 }
