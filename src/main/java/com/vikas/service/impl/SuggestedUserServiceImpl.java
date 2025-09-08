@@ -444,7 +444,7 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     public List<SuggestedUser> getLeaderboard() {
         User authenticatedUser =
                 (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return suggestedUserRepository.findTop10BySuggestedByAndOrderByTotalContributionsDesc(
+        return suggestedUserRepository.findTop10BySuggestedByOrderByTotalContributionsDesc(
                 authenticatedUser);
     }
 
