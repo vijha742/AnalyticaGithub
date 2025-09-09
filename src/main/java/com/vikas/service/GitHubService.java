@@ -1,6 +1,7 @@
 package com.vikas.service;
 
 import com.vikas.dto.AuthDTO;
+import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.User;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -32,4 +33,6 @@ public interface GitHubService {
     List<String> createTeam(String team);
 
     List<User> getLeaderboard();
+
+    UserComparisonDTO compareTwoUsers(String githubUsername1, String githubUsername2);
 }

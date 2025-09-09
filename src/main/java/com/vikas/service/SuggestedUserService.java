@@ -1,7 +1,6 @@
 package com.vikas.service;
 
 import com.vikas.dto.MatchedPeerDTO;
-import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.SuggestedUser;
 
 import java.util.List;
@@ -22,8 +21,6 @@ public interface SuggestedUserService {
     // username);
     //
     boolean deactivateUser(UUID id);
-
-    UserComparisonDTO compareTwoUsers(String githubUsername1, String githubUsername2);
 
     // boolean isUserSuggested(String githubUsername);
     List<SuggestedUser> getLeaderboard();

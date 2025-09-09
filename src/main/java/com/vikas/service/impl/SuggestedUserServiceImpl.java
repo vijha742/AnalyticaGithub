@@ -1,9 +1,7 @@
 package com.vikas.service.impl;
 
-import com.vikas.dto.CompResults;
 import com.vikas.dto.GitHubUserResponse;
 import com.vikas.dto.MatchedPeerDTO;
-import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.SuggestedGithubRepository;
 import com.vikas.model.SuggestedUser;
 import com.vikas.model.User;
@@ -416,21 +414,6 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    @Override
-    @Transactional
-    public UserComparisonDTO compareTwoUsers(String githubUsername1, String githubUsername2) {
-        SuggestedUser user1 = suggestedUserRepository.findFirstByGithubUsername(githubUsername1);
-        SuggestedUser user2 = suggestedUserRepository.findFirstByGithubUsername(githubUsername2);
-
-        if (user1 == null || user2 == null) {
-            throw new RuntimeException("One or both users not found in the specified team.");
-        }
-
-        CompResults results = new CompResults(user1, user2);
-
-        return UserComparisonDTO.builder().user1(user1).user2(user2).results(results).build();
     }
 
     //

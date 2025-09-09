@@ -59,20 +59,6 @@ public class SuggestedUserController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
-    // HACK: In the current implementation I am using that every user that user is gonna compare
-    // would exist in SuggestedUserRepository...which can result in Mishap soon.
-    @GetMapping("/compare")
-    public ResponseEntity<?> compareTwoUsers(
-            @RequestParam String User1, @RequestParam String User2) {
-        try {
-            return ResponseEntity.ok(suggestedUserService.compareTwoUsers(User1, User2));
-        } catch (Exception e) {
-            log.error("Comparison failed", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Comparison failed: " + e.getMessage());
-        }
-    }
-
     // @GetMapping("/check/{githubUsername}")
     // public ResponseEntity<Boolean> isUserSuggested(@PathVariable String
     // githubUsername) {

@@ -1,6 +1,7 @@
 package com.vikas.dto;
 
-import com.vikas.model.SuggestedUser;
+import com.vikas.model.User;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,15 +18,19 @@ public class CompResults {
     private String pullRequestsResult;
     private String issuesResult;
     private String commitsResult;
+
     // Add more fields as necessary
 
-    public CompResults(SuggestedUser user1, SuggestedUser user2) {
+    public CompResults(User user1, User user2) {
         this.followersResult = compareValues(user1.getFollowersCount(), user2.getFollowersCount());
-        this.publicReposResult = compareValues(user1.getPublicReposCount(), user2.getPublicReposCount());
-        this.totalContributionsResult = compareValues(user1.getTotalContributions(), user2.getTotalContributions());
-        this.pullRequestsResult = compareValues(user1.getPullRequestsCount(), user2.getPullRequestsCount());
-        this.issuesResult = compareValues(user1.getIssuesCount(), user2.getIssuesCount());
-        this.commitsResult = compareValues(user1.getCommitsCount(), user2.getCommitsCount());
+        this.publicReposResult =
+                compareValues(user1.getPublicReposCount(), user2.getPublicReposCount());
+        this.totalContributionsResult =
+                compareValues(user1.getTotalContributions(), user2.getTotalContributions());
+        // this.pullRequestsResult =
+        //         compareValues(user1.getPullRequestsCount(), user2.getPullRequestsCount());
+        // this.issuesResult = compareValues(user1.getIssuesCount(), user2.getIssuesCount());
+        // this.commitsResult = compareValues(user1.getCommitsCount(), user2.getCommitsCount());
     }
 
     // Can be replaced with Enum for better type safety

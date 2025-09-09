@@ -1,7 +1,7 @@
 package com.vikas.dto;
 
+import com.vikas.model.User;
 
-import com.vikas.model.SuggestedUser;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserComparisonDTO {
     private CompResults results;
-    private SuggestedUser user1;
-    private SuggestedUser user2;
+    private User user1;
+    private User user2;
 }

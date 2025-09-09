@@ -1,6 +1,8 @@
 package com.vikas.service.impl;
 
 import com.vikas.dto.AuthDTO;
+import com.vikas.dto.CompResults;
+import com.vikas.dto.UserComparisonDTO;
 import com.vikas.model.GithubRepository;
 import com.vikas.model.TechTimeline;
 import com.vikas.model.TechnicalProfile;
@@ -492,5 +494,20 @@ public class GitHubServiceImpl implements GitHubService {
     @Transactional
     public List<User> getLeaderboard() {
         return userRepository.findTop10ByOrderByTotalContributionsDesc();
+    }
+
+    @Override
+    @Transactional
+    public UserComparisonDTO compareTwoUsers(String githubUsername1, String githubUsername2) {
+        User user1 = getUser(githubUsername1);
+        User user2 = getUser(githubUsername2);
+
+        if (user1 == null || user2 == null) {
+            throw new RuntimeException("One or both users not found in the specified team.");
+        }
+
+        CompResults results = new CompResults(user1, user2);
+
+        return UserComparisonDTO.builder().user1(user1).user2(user2).results(results).build();
     }
 }

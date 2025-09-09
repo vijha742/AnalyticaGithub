@@ -7,6 +7,7 @@ import com.vikas.service.GitHubService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,5 +64,18 @@ public class UserController {
         if (teams != null) {
             return ResponseEntity.ok(teams);
         } else return ResponseEntity.notFound().build();
+    }
+
+    // HACK: In the current implementation I am using that every user that user is gonna compare
+    // would exist in SuggestedUserRepository...which can result in Mishap soon.
+    @GetMapping("/compare")
+    public ResponseEntity<?> compareTwoUsers(
+            @RequestParam String User1, @RequestParam String User2) {
+        try {
+            return ResponseEntity.ok(gitHubService.compareTwoUsers(User1, User2));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Comparison failed: " + e.getMessage());
+        }
     }
 }
