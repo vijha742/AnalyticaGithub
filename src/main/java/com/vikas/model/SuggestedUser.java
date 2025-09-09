@@ -1,14 +1,17 @@
 package com.vikas.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
 import lombok.Data;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +54,7 @@ public class SuggestedUser {
     private int issuesCount;
     private int commitsCount;
 
-//    @JsonIgnore
+    //    @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
@@ -69,5 +72,4 @@ public class SuggestedUser {
     protected void onCreate() {
         suggestedAt = Instant.now();
     }
-
 }

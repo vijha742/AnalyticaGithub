@@ -1,12 +1,13 @@
 package com.vikas.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Duration;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -16,8 +17,8 @@ public class LanguageExpertise {
     private String language = "";
     private int linesOfCode;
     private float yearsOfExperience;
-    private OffsetDateTime lastUsed;
-    private OffsetDateTime firstUsed;
+    private Instant lastUsed;
+    private Instant firstUsed;
     private ProficiencyLevel proficiencyLevel = ProficiencyLevel.BEGINNER;
     private int projectCount;
     // TODO: Is it really required...
@@ -27,12 +28,11 @@ public class LanguageExpertise {
         this.language = language;
     }
 
-    public void update(OffsetDateTime createdAt, OffsetDateTime lastUpdatedAt, int linesOfCode) {
+    public void update(Instant createdAt, Instant lastUpdatedAt, int linesOfCode) {
         if (this.lastUsed == null || this.lastUsed.isBefore(lastUpdatedAt)) {
             this.lastUsed = lastUpdatedAt;
         }
-        if(this.firstUsed == null || this.firstUsed.isAfter(createdAt)) this.firstUsed = createdAt;
-
+        if (this.firstUsed == null || this.firstUsed.isAfter(createdAt)) this.firstUsed = createdAt;
 
         if (this.lastUsed != null && createdAt != null) {
             Duration experienceDuration = Duration.between(createdAt, this.lastUsed);

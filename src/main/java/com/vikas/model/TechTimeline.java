@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +22,13 @@ public class TechTimeline {
             TechnologyTimeline timeline = new TechnologyTimeline();
             timeline.setName(language.getLanguage());
             timeline.setFirstUsed(
-                    language.getFirstUsed() != null ? language.getFirstUsed().toLocalDate() : null);
+                    language.getFirstUsed() != null
+                            ? language.getFirstUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             timeline.setLastUsed(
-                    language.getLastUsed() != null ? language.getLastUsed().toLocalDate() : null);
+                    language.getLastUsed() != null
+                            ? language.getLastUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             //            timeline.setFrequency(language.getYearsOfExperience());
             timeline.setProjectCount(language.getProjectCount());
             technologyUsageList.add(timeline);
@@ -33,11 +38,11 @@ public class TechTimeline {
             timeline.setName(frameworks.getName());
             timeline.setFirstUsed(
                     frameworks.getFirstUsed() != null
-                            ? frameworks.getFirstUsed().toLocalDate()
+                            ? frameworks.getFirstUsed().atZone(ZoneId.systemDefault()).toLocalDate()
                             : null);
             timeline.setLastUsed(
                     frameworks.getLastUsed() != null
-                            ? frameworks.getLastUsed().toLocalDate()
+                            ? frameworks.getLastUsed().atZone(ZoneId.systemDefault()).toLocalDate()
                             : null);
             timeline.setFrequency(frameworks.getFrequency());
             timeline.setProjectCount(frameworks.getProjectCount());
@@ -47,9 +52,13 @@ public class TechTimeline {
             TechnologyTimeline timeline = new TechnologyTimeline();
             timeline.setName(library.getName());
             timeline.setFirstUsed(
-                    library.getFirstUsed() != null ? library.getFirstUsed().toLocalDate() : null);
+                    library.getFirstUsed() != null
+                            ? library.getFirstUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             timeline.setLastUsed(
-                    library.getLastUsed() != null ? library.getLastUsed().toLocalDate() : null);
+                    library.getLastUsed() != null
+                            ? library.getLastUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             timeline.setFrequency(library.getFrequency());
             timeline.setProjectCount(library.getProjectCount());
             technologyUsageList.add(timeline);
@@ -58,9 +67,13 @@ public class TechTimeline {
             TechnologyTimeline timeline = new TechnologyTimeline();
             timeline.setName(tools.getName());
             timeline.setFirstUsed(
-                    tools.getFirstUsed() != null ? tools.getFirstUsed().toLocalDate() : null);
+                    tools.getFirstUsed() != null
+                            ? tools.getFirstUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             timeline.setLastUsed(
-                    tools.getLastUsed() != null ? tools.getLastUsed().toLocalDate() : null);
+                    tools.getLastUsed() != null
+                            ? tools.getLastUsed().atZone(ZoneId.systemDefault()).toLocalDate()
+                            : null);
             timeline.setFrequency(tools.getFrequency());
             timeline.setProjectCount(tools.getProjectCount());
             technologyUsageList.add(timeline);

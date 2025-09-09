@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -15,8 +15,8 @@ import java.time.OffsetDateTime;
 public class TechnologyUsage {
     private String name;
     private TechnologyCategory category;
-    private OffsetDateTime firstUsed;
-    private OffsetDateTime lastUsed;
+    private Instant firstUsed;
+    private Instant lastUsed;
     private float frequency;
     private int projectCount;
     private ProficiencyLevel proficiencyLevel;
@@ -26,7 +26,7 @@ public class TechnologyUsage {
         this.category = category;
     }
 
-    public void update(OffsetDateTime createdAt, OffsetDateTime lastUpdatedAt) {
+    public void update(Instant createdAt, Instant lastUpdatedAt) {
         if (this.lastUsed == null || this.lastUsed.isBefore(lastUpdatedAt)) {
             this.lastUsed = lastUpdatedAt;
         }
