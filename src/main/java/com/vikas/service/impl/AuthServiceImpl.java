@@ -99,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
         if (!verifiedGithubUser.getName().equals(request.getUserObject().getName())) {
             log.error(
                     "Mismatch between frontend GitHub UserName ({}) and verified GitHub UserName"
-                        + " ({})",
+                            + " ({})",
                     request.getUserObject().getName(),
                     verifiedGithubUser.getName());
             throw new AuthException("GitHub user ID mismatch. Potential tampering detected.");
@@ -139,7 +139,7 @@ public class AuthServiceImpl implements AuthService {
                 String newJwtToken = jwtService.generateToken(userDetails);
                 return AuthResponse.builder()
                         .jwtToken(newJwtToken)
-                        .refreshToken(refreshToken) // Return the same refresh token
+                        .refreshToken(refreshToken)
                         .message("Access token refreshed successfully")
                         .build();
             }

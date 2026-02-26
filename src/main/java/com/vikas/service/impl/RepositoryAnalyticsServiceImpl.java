@@ -28,6 +28,8 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
      * @param username The GitHub username to analyze.
      * @return A list of ReadmeQuality objects containing the analysis results.
      */
+    // TODO: Implement a full blown parser to parse technologies from readme and dependecy files for
+    // various technologies
     @Override
     public List<ReadmeQuality> analyzeReadmeQuality(String username) {
         if (!gitHubClient.verifyUserExists(username)) {

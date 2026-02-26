@@ -30,7 +30,11 @@ public interface GitHubService {
 
     Optional<User> findByUsername(String username);
 
+    List<String> getTeams();
+
     List<String> createTeam(String team);
+
+    List<String> deleteTeam(String team);
 
     List<User> getLeaderboard();
 

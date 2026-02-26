@@ -7,6 +7,7 @@ import com.vikas.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,14 +22,14 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> signIn(@RequestBody SocialLoginRequest req) {
-        System.out.println("SignInRequest: " + req);
+        System.out.println("Triggered Sign in");
         AuthResponse response = authService.authenticate(req);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh-jwt")
-    public ResponseEntity<?> refreshJwt(@RequestBody String req) {
-        System.out.println("RefreshJwtRequest: " + req);
+    public ResponseEntity<?> refreshJwt(@CookieValue(name = "refreshToken") String req) {
+        System.out.println("Triggered refresh jwt");
         AuthResponse response = authService.refreshAccessToken(req);
         return ResponseEntity.ok(response);
     }

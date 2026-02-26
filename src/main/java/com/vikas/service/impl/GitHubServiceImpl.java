@@ -7,7 +7,10 @@ import com.vikas.model.GithubRepository;
 import com.vikas.model.TechTimeline;
 import com.vikas.model.TechnicalProfile;
 import com.vikas.model.User;
+import com.vikas.repository.SuggestedUserRepoDataRepository;
+import com.vikas.repository.SuggestedUserRepository;
 import com.vikas.repository.UserRepository;
+import com.vikas.service.AnalyticsService;
 import com.vikas.service.GitHubService;
 import com.vikas.service.RepositoryAnalyticsService;
 import com.vikas.utils.GithubGraphQLClient;
@@ -38,6 +41,9 @@ public class GitHubServiceImpl implements GitHubService {
 
     private final UserRepository userRepository;
     private final RepositoryAnalyticsService repoService;
+    private final SuggestedUserRepository suggestedUserRepo;
+    private final SuggestedUserRepoDataRepository suggestedUserRepoRepository;
+    private final AnalyticsService analyticsService;
     private final QueryManager queryHub;
     private final GithubGraphQLClient githubClient;
 
@@ -54,18 +60,17 @@ public class GitHubServiceImpl implements GitHubService {
                             newUser.setEmail(githubUser.getEmail());
                             newUser.setAvatarUrl(githubUser.getAvatarUrl());
                             newUser.setBio(githubUser.getBio());
-                            // newUser.setRole(Role.USER);
                             newUser.setFollowersCount(githubUser.getFollowersCount());
                             newUser.setFollowingCount(githubUser.getFollowingCount());
                             newUser.setPublicReposCount(githubUser.getPublicReposCount());
                             newUser.setCreatedAt(githubUser.getCreated_at());
                             newUser.setTeams(Arrays.asList("Classmates", "Friends", "Colleagues"));
-                            // newUser.setTotalContributions(githubUser.getTotalContributions());
+                            // Contribution contri = analyticsService.getContributions(
+                            // githubUser.getUserName(), "weekly");
+                            // newUser.setTotalContributions(contri.getTotalContributions());
                             TechnicalProfile techAnalysis = new TechnicalProfile();
-                            techAnalysis =
-                                    repoService.getTechnicalProfile(githubUser.getUserName());
+                            techAnalysis = repoService.getTechnicalProfile(githubUser.getUserName());
                             newUser.setTechnicalProfile(techAnalysis);
-                            System.out.println(techAnalysis);
                             TechTimeline userTech = new TechTimeline(techAnalysis);
                             newUser.setUserTech(userTech);
                             newUser.setLastUpdated(Instant.now());
@@ -83,10 +88,8 @@ public class GitHubServiceImpl implements GitHubService {
     public User getUser(String Username) {
         User user = new User();
         try {
-            Map<String, Object> response =
-                    githubClient.executeQuery(
-                            queryHub.fetchUserData(), Map.of("username", Username));
-            System.out.println("Query executed.." + response);
+            Map<String, Object> response = githubClient.executeQuery(
+                    queryHub.fetchUserData(), Map.of("username", Username));
             if (response != null && response.get("user") instanceof Map) {
                 Map<String, Object> gitHubUser = (Map<String, Object>) response.get("user");
                 user.setGithubUsername((String) gitHubUser.get("login"));
@@ -97,8 +100,7 @@ public class GitHubServiceImpl implements GitHubService {
                 user.setLastUpdated(Instant.parse((String) gitHubUser.get("updatedAt")));
                 int followersCount = 0;
                 if (gitHubUser.get("followers") instanceof Map) {
-                    Map<String, Object> followers =
-                            (Map<String, Object>) gitHubUser.get("followers");
+                    Map<String, Object> followers = (Map<String, Object>) gitHubUser.get("followers");
                     Object totalFollowers = followers.get("totalCount");
                     if (totalFollowers instanceof Number) {
                         followersCount = ((Number) totalFollowers).intValue();
@@ -107,8 +109,7 @@ public class GitHubServiceImpl implements GitHubService {
                 user.setFollowersCount(followersCount);
                 int followingCount = 0;
                 if (gitHubUser.get("following") instanceof Map) {
-                    Map<String, Object> following =
-                            (Map<String, Object>) gitHubUser.get("following");
+                    Map<String, Object> following = (Map<String, Object>) gitHubUser.get("following");
                     Object totalFollowing = following.get("totalCount");
                     if (totalFollowing instanceof Number) {
                         followingCount = ((Number) totalFollowing).intValue();
@@ -118,15 +119,13 @@ public class GitHubServiceImpl implements GitHubService {
                 int publicReposCount = 0;
                 List<GithubRepository> repos = new ArrayList<>();
                 if (gitHubUser.get("repositories") instanceof Map) {
-                    Map<String, Object> repositories =
-                            (Map<String, Object>) gitHubUser.get("repositories");
+                    Map<String, Object> repositories = (Map<String, Object>) gitHubUser.get("repositories");
                     Object totalRepos = repositories.get("totalCount");
                     if (totalRepos instanceof Number) {
                         publicReposCount = ((Number) totalRepos).intValue();
                     }
                     if (repositories.get("nodes") instanceof List) {
-                        List<Map<String, Object>> repoNodes =
-                                (List<Map<String, Object>>) repositories.get("nodes");
+                        List<Map<String, Object>> repoNodes = (List<Map<String, Object>>) repositories.get("nodes");
                         for (Map<String, Object> map : repoNodes) {
                             GithubRepository repo = new GithubRepository();
                             repo.setName((String) map.get("name"));
@@ -134,8 +133,7 @@ public class GitHubServiceImpl implements GitHubService {
 
                             String language = null;
                             if (map.get("primaryLanguage") instanceof Map) {
-                                Map<String, Object> primaryLang =
-                                        (Map<String, Object>) map.get("primaryLanguage");
+                                Map<String, Object> primaryLang = (Map<String, Object>) map.get("primaryLanguage");
                                 Object lang = primaryLang.get("name");
                                 if (lang instanceof String) {
                                     language = ((String) lang);
@@ -155,15 +153,13 @@ public class GitHubServiceImpl implements GitHubService {
                 user.setUserRepository(repos);
                 user.setPublicReposCount(publicReposCount);
                 if (gitHubUser.get("contributionsCollection") instanceof Map) {
-                    Map<String, Object> contributionsCollection =
-                            (Map<String, Object>) gitHubUser.get("contributionsCollection");
+                    Map<String, Object> contributionsCollection = (Map<String, Object>) gitHubUser
+                            .get("contributionsCollection");
                     if (contributionsCollection != null
                             && contributionsCollection.get("contributionCalendar") instanceof Map) {
-                        Map<String, Object> map =
-                                (Map<String, Object>)
-                                        contributionsCollection.get("contributionCalendar");
-                        int totalContributions =
-                                ((Integer) map.get("totalContributions")).intValue();
+                        Map<String, Object> map = (Map<String, Object>) contributionsCollection
+                                .get("contributionCalendar");
+                        int totalContributions = ((Integer) map.get("totalContributions")).intValue();
                         user.setTotalContributions(totalContributions);
                     }
                 }
@@ -273,9 +269,8 @@ public class GitHubServiceImpl implements GitHubService {
     @Override
     public List<User> searchUsers(String query, int limit) {
         try {
-            Map<String, Object> response =
-                    githubClient.executeQuery(
-                            queryHub.searchUsers(), Map.of("query", query, "first", limit));
+            Map<String, Object> response = githubClient.executeQuery(
+                    queryHub.searchUsers(), Map.of("query", query, "first", limit));
             if (response != null && response.get("search") instanceof Map) {
                 Map<String, Object> searchMap = (Map<String, Object>) response.get("search");
                 Object nodesObj = searchMap.get("nodes");
@@ -293,8 +288,7 @@ public class GitHubServiceImpl implements GitHubService {
                             user.setBio((String) gitHubUser.get("bio"));
                             int followersCount = 0;
                             if (gitHubUser.get("followers") instanceof Map) {
-                                Map<String, Object> followers =
-                                        (Map<String, Object>) gitHubUser.get("followers");
+                                Map<String, Object> followers = (Map<String, Object>) gitHubUser.get("followers");
                                 Object totalFollowers = followers.get("totalCount");
                                 if (totalFollowers instanceof Number) {
                                     followersCount = ((Number) totalFollowers).intValue();
@@ -303,8 +297,7 @@ public class GitHubServiceImpl implements GitHubService {
                             user.setFollowersCount(followersCount);
                             int followingCount = 0;
                             if (gitHubUser.get("following") instanceof Map) {
-                                Map<String, Object> following =
-                                        (Map<String, Object>) gitHubUser.get("following");
+                                Map<String, Object> following = (Map<String, Object>) gitHubUser.get("following");
                                 Object totalFollowing = following.get("totalCount");
                                 if (totalFollowing instanceof Number) {
                                     followingCount = ((Number) totalFollowing).intValue();
@@ -313,8 +306,7 @@ public class GitHubServiceImpl implements GitHubService {
                             user.setFollowingCount(followingCount);
                             int publicReposCount = 0;
                             if (gitHubUser.get("repositories") instanceof Map) {
-                                Map<String, Object> repositories =
-                                        (Map<String, Object>) gitHubUser.get("repositories");
+                                Map<String, Object> repositories = (Map<String, Object>) gitHubUser.get("repositories");
                                 Object totalRepos = repositories.get("totalCount");
                                 if (totalRepos instanceof Number) {
                                     publicReposCount = ((Number) totalRepos).intValue();
@@ -324,7 +316,6 @@ public class GitHubServiceImpl implements GitHubService {
                             users.add(user);
                         }
                     }
-                    System.out.println(users);
                     return users;
                 }
             }
@@ -477,16 +468,41 @@ public class GitHubServiceImpl implements GitHubService {
     }
 
     @Override
-    public List<String> createTeam(String team) {
-        User authenticatedUser =
-                (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public List<String> getTeams() {
+        User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = authenticatedUser.getGithubUsername();
-        User user =
-                userRepository
-                        .findByGithubUsername(username)
-                        .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        User user = userRepository
+                .findByGithubUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        return authenticatedUser.getTeams();
+    }
+
+    @Override
+    public List<String> createTeam(String team) {
+        User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = authenticatedUser.getGithubUsername();
+        User user = userRepository
+                .findByGithubUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
         user.getTeams().add(team);
         userRepository.save(user);
+        return user.getTeams();
+    }
+
+    // HACK: I'm currently just brute forcing this method. There must be some better
+    // way to
+    // implement it, which I need to do later.
+    @Override
+    public List<String> deleteTeam(String team) {
+        User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = authenticatedUser.getGithubUsername();
+        User user = userRepository
+                .findByGithubUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        user.getTeams().remove(team);
+        userRepository.save(user);
+        suggestedUserRepoRepository.deleteAllByUserAndTeam(user, team);
+        suggestedUserRepo.deleteAllByUserAndTeam(user, team);
         return user.getTeams();
     }
 

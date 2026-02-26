@@ -1,8 +1,6 @@
 package com.vikas.utils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.vikas.dto.GitHubUserResponse;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -13,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.vikas.dto.GitHubUserResponse;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class GithubGraphQLClient {
@@ -21,7 +21,9 @@ public class GithubGraphQLClient {
     private final String githubToken;
     private final RestTemplate restTemplate;
 
-    public GithubGraphQLClient(RestTemplate restTemplate, @Value("${github.api.graphql-url}") String githubGraphqlUrl,
+    public GithubGraphQLClient(
+            RestTemplate restTemplate,
+            @Value("${github.api.graphql-url}") String githubGraphqlUrl,
             @Value("${github.api.token}") String githubToken) {
         this.restTemplate = restTemplate;
         this.githubGraphqlUrl = githubGraphqlUrl;
@@ -31,7 +33,7 @@ public class GithubGraphQLClient {
     /**
      * Execute a GraphQL query against the GitHub API
      *
-     * @param query     GraphQL query string
+     * @param query GraphQL query string
      * @param variables Map of variables for the query
      * @return Map containing the 'data' element of the response
      */
@@ -47,9 +49,10 @@ public class GithubGraphQLClient {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            var response = restTemplate
-                    .exchange(githubGraphqlUrl, HttpMethod.POST, entity, Map.class)
-                    .getBody();
+            var response =
+                    restTemplate
+                            .exchange(githubGraphqlUrl, HttpMethod.POST, entity, Map.class)
+                            .getBody();
 
             return response != null ? (Map<String, Object>) response.get("data") : null;
         } catch (Exception e) {
@@ -70,35 +73,37 @@ public class GithubGraphQLClient {
 
         try {
             // Get repository info
-            ResponseEntity<Map> repoResponse = restTemplate.exchange(repoUrl, HttpMethod.GET, requestEntity, Map.class);
+            ResponseEntity<Map> repoResponse =
+                    restTemplate.exchange(repoUrl, HttpMethod.GET, requestEntity, Map.class);
             Map<String, Object> repoData = repoResponse.getBody();
 
-            if (repoData == null)
-                return 0;
+            if (repoData == null) return 0;
 
             // Get the default branch name
             String defaultBranch = (String) repoData.get("default_branch");
-            if (defaultBranch == null)
-                defaultBranch = "main"; // fallback
+            if (defaultBranch == null) defaultBranch = "main"; // fallback
 
             // Now get the tree using the default branch
-            String treeUrl = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1",
-                    owner, repo, defaultBranch);
+            String treeUrl =
+                    String.format(
+                            "https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1",
+                            owner, repo, defaultBranch);
 
-            ResponseEntity<Map> response = restTemplate.exchange(treeUrl, HttpMethod.GET, requestEntity, Map.class);
+            ResponseEntity<Map> response =
+                    restTemplate.exchange(treeUrl, HttpMethod.GET, requestEntity, Map.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                List<Map<String, Object>> tree = (List<Map<String, Object>>) response.getBody().get("tree");
-                if (tree == null)
-                    return 0;
+                List<Map<String, Object>> tree =
+                        (List<Map<String, Object>>) response.getBody().get("tree");
+                if (tree == null) return 0;
 
-                return (int) tree.stream()
-                        .filter(entry -> "blob".equals(entry.get("type")))
-                        .count();
+                return (int)
+                        tree.stream().filter(entry -> "blob".equals(entry.get("type"))).count();
             }
 
         } catch (Exception e) {
-            System.err.println("Failed to get files for " + owner + "/" + repo + ": " + e.getMessage());
+            System.err.println(
+                    "Failed to get files for " + owner + "/" + repo + ": " + e.getMessage());
             return 0;
         }
 
@@ -107,7 +112,8 @@ public class GithubGraphQLClient {
 
     public boolean verifyUserExists(String githubUsername) {
         try {
-            String query = """
+            String query =
+                    """
                     query($username: String!) {
                         user(login: $username) {
                             id
@@ -128,18 +134,20 @@ public class GithubGraphQLClient {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            GitHubUserResponse response = restTemplate.exchange(
-                    githubGraphqlUrl,
-                    HttpMethod.POST,
-                    entity,
-                    GitHubUserResponse.class).getBody();
+            GitHubUserResponse response =
+                    restTemplate
+                            .exchange(
+                                    githubGraphqlUrl,
+                                    HttpMethod.POST,
+                                    entity,
+                                    GitHubUserResponse.class)
+                            .getBody();
 
-            return response != null &&
-                    response.getData() != null &&
-                    response.getData().getUser() != null;
+            return response != null
+                    && response.getData() != null
+                    && response.getData().getUser() != null;
         } catch (Exception e) {
             return false;
         }
     }
-
 }

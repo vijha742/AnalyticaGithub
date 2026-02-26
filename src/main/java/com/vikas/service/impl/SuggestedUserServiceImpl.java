@@ -54,6 +54,13 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Transactional
     @Override
     public SuggestedUser suggestUser(String githubUsername, String team) {
+        if (githubUsername == null || githubUsername.trim().isEmpty()) {
+            throw new RuntimeException("GitHub username cannot be empty");
+        }
+
+        if (team == null || team.trim().isEmpty()) {
+            throw new RuntimeException("Team cannot be empty");
+        }
         User authenticatedUser =
                 (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (suggestedUserRepository.existsByGithubUsernameAndSuggestedByAndTeam(
@@ -61,8 +68,12 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
             SuggestedUser user =
                     suggestedUserRepository.findByGithubUsernameAndSuggestedByAndTeam(
                             githubUsername, authenticatedUser, team);
-            user.setActive(true);
-            return suggestedUserRepository.save(user);
+            if (user.isActive()) {
+                throw new RuntimeException("User already Exists.");
+            } else {
+                user.setActive(true);
+                return suggestedUserRepository.save(user);
+            }
         }
         var githubUser =
                 addUserData(githubUsername)
@@ -185,8 +196,11 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     @Transactional
     public SuggestedUser refreshUserData(String githubUsername, String team) {
         // TODO: Error and Exception Handling...
+        User authenticatedUser =
+                (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         SuggestedUser suggestedUser =
-                suggestedUserRepository.findByGithubUsernameAndTeam(githubUsername, team);
+                suggestedUserRepository.findByGithubUsernameAndSuggestedByAndTeam(
+                        githubUsername, authenticatedUser, team);
 
         var githubUser =
                 addUserData(githubUsername)
@@ -225,13 +239,17 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
                                 .getTotalContributions()
                                 .getTotalContributions()
                         : 0);
-        List<SuggestedGithubRepository> repositories = new ArrayList<>();
+        // TODO: Currently while refreshing there is no need to update existing repos as I'm not
+        // using any of their data which'd be repeatedly updated.
+        List<SuggestedGithubRepository> repositories = suggestedUser.getRepositories();
         if (githubUser.getRepositories() != null
                 && githubUser.getRepositories().getNodes() != null) {
             for (GitHubUserResponse.Repository repo : githubUser.getRepositories().getNodes()) {
                 SuggestedGithubRepository mappedRepo = mapRepository(repo, suggestedUser);
-                SuggestedGithubRepository createdRepo = repoRepository.save(mappedRepo);
-                repositories.add(createdRepo);
+                if (!repositories.contains(mappedRepo)) {
+                    SuggestedGithubRepository createdRepo = repoRepository.save(mappedRepo);
+                    repositories.add(createdRepo);
+                }
             }
         }
         suggestedUser.setRepositories(repositories);
@@ -322,6 +340,8 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     // MAX_USERS_IN_SINGLE_QUERY) {
     // int endIndex = Math.min(startIndex + MAX_USERS_IN_SINGLE_QUERY, totalUsers);
     // final int batchStart = startIndex;
+    // final int batchEnd = endIndex;
+    //
     // final int batchEnd = endIndex;
     //
     // CompletableFuture<List<User>> future = CompletableFuture.supplyAsync(() ->
@@ -427,8 +447,9 @@ public class SuggestedUserServiceImpl implements SuggestedUserService {
     public List<SuggestedUser> getLeaderboard() {
         User authenticatedUser =
                 (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return suggestedUserRepository.findTop10BySuggestedByOrderByTotalContributionsDesc(
-                authenticatedUser);
+        return suggestedUserRepository
+                .findTop10BySuggestedByAndActiveTrueOrderByTotalContributionsDesc(
+                        authenticatedUser);
     }
 
     @Override

@@ -25,9 +25,9 @@ public class SuggestedUser {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column( nullable = false)
-    private String githubUsername;
     @Column(nullable = false)
+    private String githubUsername;
+
     private String name;
     private String email;
     private String avatarUrl;
@@ -55,7 +55,11 @@ public class SuggestedUser {
     private int commitsCount;
 
     //    @JsonIgnore
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    @OneToMany(
+            mappedBy = "user",
+            fetch = FetchType.EAGER,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<SuggestedGithubRepository> repositories;

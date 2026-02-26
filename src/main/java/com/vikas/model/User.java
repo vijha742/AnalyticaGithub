@@ -36,7 +36,7 @@ public class User {
     private int publicReposCount;
     private Integer totalContributions;
 
-    //    private Integer totalContributionsThisYear;
+    // private Integer totalContributionsThisYear;
 
     private LocalDate createdAt;
 
@@ -44,13 +44,14 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<GithubRepository> userRepository;
 
-    //    @JsonIgnore
-    //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    //    private List<Contribution> contributions;
+    // @JsonIgnore
+    // @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    // private List<Contribution> contributions;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private UserReadmeAnalysis userReadmeAnalysis;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     private List<String> teams;
 
     @JdbcTypeCode(SqlTypes.JSON)
