@@ -14,6 +14,7 @@ import com.vikas.service.AnalyticsService;
 import com.vikas.service.GitHubService;
 import com.vikas.service.RepositoryAnalyticsService;
 import com.vikas.utils.GithubGraphQLClient;
+import com.vikas.utils.MapUtils;
 import com.vikas.utils.QueryManager;
 
 import lombok.RequiredArgsConstructor;
@@ -85,6 +86,33 @@ public class GitHubServiceImpl implements GitHubService {
         return userData.orElse(getUser(Username));
     }
 
+    /**
+     * Parses a GitHub user map and populates a User object with basic information.
+     * Does not include repository details or technical profile.
+     *
+     * @param gitHubUser The map containing GitHub user data
+     * @return A User object with populated basic information
+     */
+    private User parseUserFromMap(Map<String, Object> gitHubUser) {
+        User user = new User();
+        user.setGithubUsername(MapUtils.extractStringFromMap(gitHubUser, "login", null));
+        user.setName(MapUtils.extractStringFromMap(gitHubUser, "name", null));
+        user.setEmail(MapUtils.extractStringFromMap(gitHubUser, "email", null));
+        user.setAvatarUrl(MapUtils.extractStringFromMap(gitHubUser, "avatarUrl", null));
+        user.setBio(MapUtils.extractStringFromMap(gitHubUser, "bio", null));
+        
+        String updatedAt = MapUtils.extractStringFromMap(gitHubUser, "updatedAt", null);
+        if (updatedAt != null) {
+            user.setLastUpdated(Instant.parse(updatedAt));
+        }
+        
+        user.setFollowersCount(MapUtils.extractIntFromNestedMap(gitHubUser, "followers", "totalCount", 0));
+        user.setFollowingCount(MapUtils.extractIntFromNestedMap(gitHubUser, "following", "totalCount", 0));
+        user.setPublicReposCount(MapUtils.extractIntFromNestedMap(gitHubUser, "repositories", "totalCount", 0));
+        
+        return user;
+    }
+
     public User getUser(String Username) {
         User user = new User();
         try {
@@ -92,38 +120,11 @@ public class GitHubServiceImpl implements GitHubService {
                     queryHub.fetchUserData(), Map.of("username", Username));
             if (response != null && response.get("user") instanceof Map) {
                 Map<String, Object> gitHubUser = (Map<String, Object>) response.get("user");
-                user.setGithubUsername((String) gitHubUser.get("login"));
-                user.setName((String) gitHubUser.get("name"));
-                user.setEmail((String) gitHubUser.get("email"));
-                user.setAvatarUrl((String) gitHubUser.get("avatarUrl"));
-                user.setBio((String) gitHubUser.get("bio"));
-                user.setLastUpdated(Instant.parse((String) gitHubUser.get("updatedAt")));
-                int followersCount = 0;
-                if (gitHubUser.get("followers") instanceof Map) {
-                    Map<String, Object> followers = (Map<String, Object>) gitHubUser.get("followers");
-                    Object totalFollowers = followers.get("totalCount");
-                    if (totalFollowers instanceof Number) {
-                        followersCount = ((Number) totalFollowers).intValue();
-                    }
-                }
-                user.setFollowersCount(followersCount);
-                int followingCount = 0;
-                if (gitHubUser.get("following") instanceof Map) {
-                    Map<String, Object> following = (Map<String, Object>) gitHubUser.get("following");
-                    Object totalFollowing = following.get("totalCount");
-                    if (totalFollowing instanceof Number) {
-                        followingCount = ((Number) totalFollowing).intValue();
-                    }
-                }
-                user.setFollowingCount(followingCount);
-                int publicReposCount = 0;
+                user = parseUserFromMap(gitHubUser);
+                
                 List<GithubRepository> repos = new ArrayList<>();
                 if (gitHubUser.get("repositories") instanceof Map) {
                     Map<String, Object> repositories = (Map<String, Object>) gitHubUser.get("repositories");
-                    Object totalRepos = repositories.get("totalCount");
-                    if (totalRepos instanceof Number) {
-                        publicReposCount = ((Number) totalRepos).intValue();
-                    }
                     if (repositories.get("nodes") instanceof List) {
                         List<Map<String, Object>> repoNodes = (List<Map<String, Object>>) repositories.get("nodes");
                         for (Map<String, Object> map : repoNodes) {
@@ -151,7 +152,6 @@ public class GitHubServiceImpl implements GitHubService {
                     }
                 }
                 user.setUserRepository(repos);
-                user.setPublicReposCount(publicReposCount);
                 if (gitHubUser.get("contributionsCollection") instanceof Map) {
                     Map<String, Object> contributionsCollection = (Map<String, Object>) gitHubUser
                             .get("contributionsCollection");
@@ -175,97 +175,6 @@ public class GitHubServiceImpl implements GitHubService {
         return user;
     }
 
-    // @Override
-    // public Optional<User> addUserData(String githubUsername) {
-    // try {
-    // Map<String, Object> variables = new HashMap<>();
-    // variables.put("username", githubUsername);
-    //
-    // Map<String, Object> requestBody = new HashMap<>();
-    // requestBody.put("query", queryHub.fetchUserData());
-    // requestBody.put("variables", variables);
-    //
-    // HttpHeaders headers = new HttpHeaders();
-    // headers.set("Authorization", "Bearer " + githubToken);
-    // headers.set("Content-Type", "application/json");
-    //
-    // HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody,
-    // headers);
-    // // TODO: Call for repo-analysis for tech and userReadme Analysis...
-    // // TODO: Search ways to get all these three queries concutrently
-    // GitHubUserResponse response = restTemplate.exchange(
-    // githubGraphqlUrl,
-    // HttpMethod.POST,
-    // entity,
-    // GitHubUserResponse.class).getBody();
-    // User user = new User();
-    // if (response != null && response.getData() != null &&
-    // response.getData().getUser() != null) {
-    // GitHubUserResponse.ResponseData data = response.getData();
-    // GitHubUserResponse.User gitHubUser = data.getUser();
-    // user.setLastUpdated(Instant.now());
-    // user.setGithubUsername(gitHubUser.getLogin());
-    // user.setName(gitHubUser.getName());
-    // user.setEmail(gitHubUser.getEmail());
-    // user.setAvatarUrl(gitHubUser.getAvatarUrl());
-    // user.setBio(gitHubUser.getBio());
-    // user.setFollowersCount(gitHubUser.getFollowers().getTotalCount());
-    // user.setFollowingCount(gitHubUser.getFollowing().getTotalCount());
-    // user.setPublicReposCount(gitHubUser.getRepositories().getTotalCount());
-    // // TODO: Need to change the query as well as change this service method and
-    // GithubUserResponse.class to incorporate the totalContributions
-    // List<GithubRepository> repositories = new ArrayList<>();
-    // if (gitHubUser.getRepositories() != null &&
-    // gitHubUser.getRepositories().getNodes() != null) {
-    // for (GitHubUserResponse.Repository repo :
-    // gitHubUser.getRepositories().getNodes()) {
-    // GithubRepository mappedRepo = mapRepository(repo);
-    // repositories.add(mappedRepo);
-    // }
-    // }
-    // user.setRepositories(repositories);
-    //
-    // List<Contribution> contributions = new ArrayList<>();
-    // GitHubUserResponse.ContributionsCollection contributionsCollection =
-    // gitHubUser.getContributionsCollection();
-    // if (contributionsCollection != null) {
-    // Contribution commitContribution = new Contribution();
-    // commitContribution.setId("commit_" + gitHubUser.getId());
-    // commitContribution.setDate(Instant.now());
-    // commitContribution.setCount(contributionsCollection.getTotalCommitContributions());
-    // commitContribution.setType("COMMIT");
-    // contributions.add(commitContribution);
-    //
-    // Contribution prContribution = new Contribution();
-    // prContribution.setId("pr_" + gitHubUser.getId());
-    // prContribution.setDate(Instant.now());
-    // prContribution.setCount(contributionsCollection.getTotalPullRequestContributions());
-    // prContribution.setType("PULL_REQUEST");
-    // contributions.add(prContribution);
-    //
-    // Contribution issueContribution = new Contribution();
-    // issueContribution.setId("issue_" + gitHubUser.getId());
-    // issueContribution.setDate(Instant.now());
-    // issueContribution.setCount(contributionsCollection.getTotalIssueContributions());
-    // issueContribution.setType("ISSUE");
-    // contributions.add(issueContribution);
-    // }
-    // user.setContributions(contributions);
-    // return Optional.of(user);
-    // }
-    //
-    // return Optional.empty();
-    // } catch (Exception e) {
-    // log.error("Error fetching user data for {}: {}", githubUsername,
-    // e.getMessage(), e);
-    // return null;
-    // }
-    // }
-
-    // public void updateUserData(User user) {
-    // // TODO: Implement user data update logic using GraphQL mutations
-    // }
-    //
     @Override
     public List<User> searchUsers(String query, int limit) {
         try {
@@ -280,39 +189,7 @@ public class GitHubServiceImpl implements GitHubService {
                     for (Object nodeObj : nodes) {
                         if (nodeObj instanceof Map) {
                             Map<String, Object> gitHubUser = (Map<String, Object>) nodeObj;
-                            User user = new User();
-                            user.setGithubUsername((String) gitHubUser.get("login"));
-                            user.setName((String) gitHubUser.get("name"));
-                            user.setEmail((String) gitHubUser.get("email"));
-                            user.setAvatarUrl((String) gitHubUser.get("avatarUrl"));
-                            user.setBio((String) gitHubUser.get("bio"));
-                            int followersCount = 0;
-                            if (gitHubUser.get("followers") instanceof Map) {
-                                Map<String, Object> followers = (Map<String, Object>) gitHubUser.get("followers");
-                                Object totalFollowers = followers.get("totalCount");
-                                if (totalFollowers instanceof Number) {
-                                    followersCount = ((Number) totalFollowers).intValue();
-                                }
-                            }
-                            user.setFollowersCount(followersCount);
-                            int followingCount = 0;
-                            if (gitHubUser.get("following") instanceof Map) {
-                                Map<String, Object> following = (Map<String, Object>) gitHubUser.get("following");
-                                Object totalFollowing = following.get("totalCount");
-                                if (totalFollowing instanceof Number) {
-                                    followingCount = ((Number) totalFollowing).intValue();
-                                }
-                            }
-                            user.setFollowingCount(followingCount);
-                            int publicReposCount = 0;
-                            if (gitHubUser.get("repositories") instanceof Map) {
-                                Map<String, Object> repositories = (Map<String, Object>) gitHubUser.get("repositories");
-                                Object totalRepos = repositories.get("totalCount");
-                                if (totalRepos instanceof Number) {
-                                    publicReposCount = ((Number) totalRepos).intValue();
-                                }
-                            }
-                            user.setPublicReposCount(publicReposCount);
+                            User user = parseUserFromMap(gitHubUser);
                             users.add(user);
                         }
                     }
@@ -326,141 +203,6 @@ public class GitHubServiceImpl implements GitHubService {
             return List.of();
         }
     }
-
-    // @Override
-    // public User refreshUserData(String githubUsername) {
-    // User userData = findOrCreateUser(githubUsername);
-    // if (userData != null) {
-    // return userData;
-    // }
-    // throw new RuntimeException("Failed to refresh user data for: " +
-    // githubUsername);
-    // }
-    //
-    // @Override
-    // @SuppressWarnings("unchecked")
-    // public ContributionCalendar getContributionTimeSeries(String username) {
-    // Map<String, String> variables = Map.of("username", username);
-    // Map<String, Object> response =
-    // githubClient.executeQuery(queryHub.getContributionCalendar(), variables);
-    //
-    // if (response == null) {
-    // return new ContributionCalendar();
-    // }
-    //
-    // try {
-    // Map<String, Object> user = (Map<String, Object>) response.get("user");
-    // if (user == null) {
-    // return new ContributionCalendar();
-    // }
-    //
-    // Map<String, Object> contributionsCollection = (Map<String, Object>) user
-    // .get("contributionsCollection");
-    // if (contributionsCollection == null) {
-    // return new ContributionCalendar();
-    // }
-    //
-    // Map<String, Object> contributionCalendar = (Map<String, Object>)
-    // contributionsCollection
-    // .get("contributionCalendar");
-    // if (contributionCalendar == null) {
-    // return new ContributionCalendar();
-    // }
-    //
-    // Integer totalContributions = (Integer)
-    // contributionCalendar.get("totalContributions");
-    // List<Map<String, Object>> weeksData = (List<Map<String, Object>>)
-    // contributionCalendar
-    // .get("weeks");
-    // List<ContributionWeek> weeks = new ArrayList<>();
-    //
-    // if (weeksData != null) {
-    // for (Map<String, Object> weekData : weeksData) {
-    // String firstDay = (String) weekData.get("firstDay");
-    // List<Map<String, Object>> contributionDaysData = (List<Map<String, Object>>)
-    // weekData
-    // .get("contributionDays");
-    // List<ContributionDay> contributionDays = new ArrayList<>();
-    //
-    // if (contributionDaysData != null) {
-    // for (Map<String, Object> dayData : contributionDaysData) {
-    // String date = (String) dayData.get("date");
-    // Integer contributionCount = (Integer) dayData
-    // .get("contributionCount");
-    //
-    // ContributionDay contributionDay = new ContributionDay();
-    // contributionDay.setDate(date);
-    // contributionDay.setContributionCount(
-    // contributionCount != null ? contributionCount
-    // : 0);
-    // contributionDays.add(contributionDay);
-    // }
-    // }
-    //
-    // if (!contributionDays.isEmpty()) {
-    // ContributionWeek week = new ContributionWeek();
-    // week.setFirstDay(firstDay);
-    // week.setContributionDays(contributionDays);
-    // weeks.add(week);
-    // }
-    // }
-    // }
-    //
-    // ContributionCalendar result = new ContributionCalendar();
-    // result.setTotalContributions(totalContributions != null ? totalContributions
-    // : 0);
-    // result.setWeeks(weeks);
-    // return result;
-    //
-    // } catch (ClassCastException | NullPointerException e) {
-    // log.error("Error parsing GitHub API response for {}: {}", username,
-    // e.getMessage());
-    // return new ContributionCalendar();
-    // }
-    // }
-    //
-    // private GithubRepository mapRepository(GitHubUserResponse.Repository repo) {
-    // GithubRepository mappedRepo = new GithubRepository();
-    // mappedRepo.setId(repo.getId());
-    // mappedRepo.setName(repo.getName());
-    // mappedRepo.setDescription(repo.getDescription());
-    // mappedRepo.setLanguage(repo.getPrimaryLanguage() != null ?
-    // repo.getPrimaryLanguage().getName() : null);
-    // mappedRepo.setStargazerCount(repo.getStargazerCount());
-    // mappedRepo.setForkCount(repo.getForkCount());
-    // mappedRepo.setIsPrivate(repo.isPrivate());
-    // mappedRepo.setCreatedAt(Instant.parse(repo.getCreatedAt()));
-    // mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
-    //
-    // // Map topics
-    // if (repo.getRepositoryTopics() != null &&
-    // repo.getRepositoryTopics().getNodes() != null) {
-    // mappedRepo.setTopics(repo.getRepositoryTopics().getNodes().stream()
-    // .map(node -> node.getTopic().getName())
-    // .collect(Collectors.toList()));
-    // } else {
-    // mappedRepo.setTopics(new ArrayList<>());
-    // }
-    //
-    // return mappedRepo;
-    // }
-    //
-    // private GithubRepository mapRepository(GitHubSearchResponse.Repository repo)
-    // {
-    // GithubRepository mappedRepo = new GithubRepository();
-    // mappedRepo.setId(repo.getId());
-    // mappedRepo.setName(repo.getName());
-    // mappedRepo.setDescription(repo.getDescription());
-    // mappedRepo.setLanguage(repo.getPrimaryLanguage() != null ?
-    // repo.getPrimaryLanguage().getName() : null);
-    // mappedRepo.setStargazerCount(repo.getStargazerCount());
-    // mappedRepo.setForkCount(repo.getForkCount());
-    // mappedRepo.setIsPrivate(repo.isPrivate());
-    // mappedRepo.setCreatedAt(Instant.parse(repo.getCreatedAt()));
-    // mappedRepo.setUpdatedAt(Instant.parse(repo.getUpdatedAt()));
-    // mappedRepo.setTopics(new ArrayList<>());
-    // return mappedRepo;
-    // }
 
     @Override
     public Optional<User> findByUsername(String username) {

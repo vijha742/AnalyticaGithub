@@ -33,3 +33,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables & Secrets ###
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+secrets.yaml

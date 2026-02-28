@@ -5,14 +5,23 @@ import com.vikas.model.User;
 import com.vikas.service.AnalyticsService;
 import com.vikas.service.GitHubService;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/public/users")
 @RequiredArgsConstructor
@@ -22,8 +31,13 @@ public class UserController {
     private final AnalyticsService analyticsService;
 
     @GetMapping("/{username}")
-    public ResponseEntity<?> getUserData(@PathVariable String username) {
-        System.out.println("Triggered /username");
+    public ResponseEntity<?> getUserData(
+            @PathVariable 
+            @NotBlank(message = "Username cannot be blank")
+            @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$", 
+                    message = "Invalid GitHub username format") 
+            String username) {
+        log.debug("Fetching user data for: {}", username);
         User user = gitHubService.findUser(username);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -32,76 +46,101 @@ public class UserController {
         }
     }
 
-    //
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("ping...");
     }
 
-    //
     @GetMapping("/{username}/contrib-cal")
     public ResponseEntity<?> contributionsTimeSeries(
-            @PathVariable String username, @RequestParam String mode) {
-        System.out.println("Triggered /contrib-cal");
+            @PathVariable 
+            @NotBlank(message = "Username cannot be blank")
+            @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$", 
+                    message = "Invalid GitHub username format")
+            String username, 
+            @RequestParam 
+            @Pattern(regexp = "^(daily|weekly|monthly)$", message = "Mode must be daily, weekly, or monthly")
+            String mode) {
+        log.debug("Fetching contribution calendar for: {} with mode: {}", username, mode);
         Contribution data = analyticsService.getContributions(username, mode);
         if (data != null) {
             return ResponseEntity.ok(data);
-        } else
+        } else {
             return ResponseEntity.notFound().build();
+        }
     }
 
-    //
-    // // @GetMapping("/rate-limit")
-    // // public ResponseEntity<?> getRateLimit() {
-    // // return ResponseEntity.ok(gitHubService.getRemainingRateLimit());
-    // // }
-
     @GetMapping("/search")
-    public List<User> searchUsers(@RequestParam String keyword, @RequestParam Integer limit) {
-        System.out.println("Triggered /search");
+    public List<User> searchUsers(
+            @RequestParam 
+            @NotBlank(message = "Keyword cannot be blank") 
+            String keyword, 
+            @RequestParam(required = false) 
+            @Min(value = 1, message = "Limit must be at least 1")
+            @Max(value = 100, message = "Limit cannot exceed 100")
+            Integer limit) {
+        log.debug("Searching users with keyword: {} and limit: {}", keyword, limit);
         return gitHubService.searchUsers(keyword, limit != null ? limit : 10);
     }
 
     @GetMapping("/team")
     public ResponseEntity<List<String>> getTeam() {
-        System.out.println("Triggered /team get");
+        log.debug("Fetching teams");
         List<String> teams = gitHubService.getTeams();
         if (teams != null) {
             return ResponseEntity.ok(teams);
-        } else
+        } else {
             return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping("/team")
-    public ResponseEntity<List<String>> createTeam(@RequestParam String teamName) {
-        System.out.println("Triggered /team post");
+    public ResponseEntity<List<String>> createTeam(
+            @RequestParam 
+            @NotBlank(message = "Team name cannot be blank") 
+            String teamName) {
+        log.debug("Creating team: {}", teamName);
         List<String> teams = gitHubService.createTeam(teamName);
         if (teams != null) {
             return ResponseEntity.ok(teams);
-        } else
+        } else {
             return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/team")
-    public ResponseEntity<List<String>> deleteTeam(@RequestParam String teamName) {
+    public ResponseEntity<List<String>> deleteTeam(
+            @RequestParam 
+            @NotBlank(message = "Team name cannot be blank") 
+            String teamName) {
+        log.debug("Deleting team: {}", teamName);
         List<String> teams = gitHubService.deleteTeam(teamName);
         if (teams != null) {
             return ResponseEntity.ok(teams);
-        } else
+        } else {
             return ResponseEntity.notFound().build();
+        }
     }
 
-    // HACK: In the current implementation I am using that every user that user is
-    // gonna compare
-    // would exist in SuggestedUserRepository...which can result in Mishap soon.
     @GetMapping("/compare")
     public ResponseEntity<?> compareTwoUsers(
-            @RequestParam String User1, @RequestParam String User2) {
+            @RequestParam 
+            @NotBlank(message = "User1 cannot be blank")
+            @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$", 
+                    message = "Invalid GitHub username format for User1")
+            String User1, 
+            @RequestParam 
+            @NotBlank(message = "User2 cannot be blank")
+            @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$", 
+                    message = "Invalid GitHub username format for User2")
+            String User2) {
         try {
+            log.debug("Comparing users: {} and {}", User1, User2);
             return ResponseEntity.ok(gitHubService.compareTwoUsers(User1, User2));
         } catch (Exception e) {
+            log.error("User comparison failed for {} and {}", User1, User2, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Comparison failed: " + e.getMessage());
+                    .body("Comparison failed. Please try again later.");
         }
     }
 }

@@ -27,10 +27,6 @@ public class CompResults {
                 compareValues(user1.getPublicReposCount(), user2.getPublicReposCount());
         this.totalContributionsResult =
                 compareValues(user1.getTotalContributions(), user2.getTotalContributions());
-        // this.pullRequestsResult =
-        //         compareValues(user1.getPullRequestsCount(), user2.getPullRequestsCount());
-        // this.issuesResult = compareValues(user1.getIssuesCount(), user2.getIssuesCount());
-        // this.commitsResult = compareValues(user1.getCommitsCount(), user2.getCommitsCount());
     }
 
     // Can be replaced with Enum for better type safety

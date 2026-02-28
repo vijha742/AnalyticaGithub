@@ -236,28 +236,6 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
             List<Map<String, Object>> nodesList =
                     (List<Map<String, Object>>) topicsList.get("nodes");
 
-            for (Map<String, Object> nodeSet : nodesList) {
-                Map<String, Object> topicMap = (Map<String, Object>) nodeSet.get("topic");
-                String topic = topicMap != null ? (String) topicMap.get("name") : null;
-                if (isFramework(topic)) {
-                    frameworkMap
-                            .computeIfAbsent(
-                                    topic,
-                                    t -> new TechnologyUsage(topic, TechnologyCategory.FRAMEWORK))
-                            .update(createdAt, updatedAt);
-                } else if (isLibrary(topic)) {
-                    frameworkMap
-                            .computeIfAbsent(
-                                    topic,
-                                    t -> new TechnologyUsage(topic, TechnologyCategory.LIBRARY))
-                            .update(createdAt, updatedAt);
-                } else if (isTool(topic)) {
-                    frameworkMap
-                            .computeIfAbsent(
-                                    topic, t -> new TechnologyUsage(topic, TechnologyCategory.TOOL))
-                            .update(createdAt, updatedAt);
-                }
-            }
             Map<String, Object> languages = (Map<String, Object>) repo.get("languages");
             List<Map<String, Object>> edges = (List<Map<String, Object>>) languages.get("edges");
             if (edges != null) {
@@ -303,41 +281,4 @@ public class RepositoryAnalyticsServiceImpl implements RepositoryAnalyticsServic
     public float calculateVersatilityScore(int languages) {
         return Math.min(1.0f, (float) (Math.log(languages + 1) / Math.log(2)) / 5);
     }
-
-    public boolean isFramework(String topic) {
-        Set<String> frameworks = Set.of();
-        return frameworks.contains(topic.toLowerCase());
-    }
-
-    public boolean isLibrary(String topic) {
-        Set<String> library = Set.of();
-        return library.contains(topic.toLowerCase());
-    }
-
-    public boolean isTool(String topic) {
-        Set<String> tool = Set.of();
-        return tool.contains(topic.toLowerCase());
-    }
-
-    //	// @Override
-    //	// public List<Repository> getImpactfulRepository(String username) {
-    //	// Map<String, String> variables = Map.of("owner", username);
-    //	// Map<String, Object> response =
-    //	// gitHubClient.executeQuery(queryManager.getImpactfulRepository(),
-    //	// variables);
-    //	// if (response != null && response.containsKey("user")) {
-    //	// Map<String, Object> user = (Map<String, Object>) response.get("user");
-    //	// Map<String, Object> repositories = (Map<String, Object>)
-    //	// user.get("repositories");
-    //	// List<Map<String, Object>> repos = (List<Map<String, Object>>)
-    //	// repositories.get("nodes");
-    //	//
-    //	// }
-    //	// }
-    //
-    //	// public RepoData getRepoData(String username) {
-    //	// RepoData repoData = new RepoData();
-    //	//
-    //	// return repoData;
-    //	// }
 }

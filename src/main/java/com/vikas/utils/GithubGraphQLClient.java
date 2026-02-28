@@ -2,6 +2,8 @@ package com.vikas.utils;
 
 import com.vikas.dto.GitHubUserResponse;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class GithubGraphQLClient {
     private final String githubGraphqlUrl;
@@ -56,7 +59,7 @@ public class GithubGraphQLClient {
 
             return response != null ? (Map<String, Object>) response.get("data") : null;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to execute GitHub GraphQL query", e);
             return null;
         }
     }
@@ -98,12 +101,11 @@ public class GithubGraphQLClient {
                 if (tree == null) return 0;
 
                 return (int)
-                        tree.stream().filter(entry -> "blob".equals(entry.get("type"))).count();
+                         tree.stream().filter(entry -> "blob".equals(entry.get("type"))).count();
             }
 
         } catch (Exception e) {
-            System.err.println(
-                    "Failed to get files for " + owner + "/" + repo + ": " + e.getMessage());
+            log.error("Failed to get total files for repository {}/{}: {}", owner, repo, e.getMessage());
             return 0;
         }
 
@@ -147,6 +149,7 @@ public class GithubGraphQLClient {
                     && response.getData() != null
                     && response.getData().getUser() != null;
         } catch (Exception e) {
+            log.warn("Failed to verify user existence for: {}", githubUsername);
             return false;
         }
     }

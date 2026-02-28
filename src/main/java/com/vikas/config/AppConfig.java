@@ -2,8 +2,10 @@ package com.vikas.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.cors.CorsConfiguration;
@@ -15,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.vikas.utils.QueryManager;
 
+import java.time.Duration;
+
 @Configuration
 @EnableScheduling
 public class AppConfig {
@@ -25,8 +29,12 @@ public class AppConfig {
     }
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        // Configure RestTemplate with timeouts to prevent hanging
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(5))  // 5 seconds connection timeout
+                .setReadTimeout(Duration.ofSeconds(10))     // 10 seconds read timeout
+                .build();
     }
 
     @Bean
@@ -44,9 +52,31 @@ public class AppConfig {
     public CorsFilter corsFilter(@Value("${frontend.url}") String frontend) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin(frontend);
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
+        
+        // Use pattern matching for better security
+        config.addAllowedOriginPattern(frontend);
+        
+        // Explicitly define allowed headers instead of wildcard
+        config.addAllowedHeader("Authorization");
+        config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Accept");
+        config.addAllowedHeader("X-Requested-With");
+        config.addAllowedHeader("X-CSRF-TOKEN");
+        
+        // Explicitly define allowed methods instead of wildcard
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("DELETE");
+        config.addAllowedMethod("OPTIONS");
+        
+        // Expose headers that the frontend may need
+        config.addExposedHeader("Authorization");
+        config.addExposedHeader("X-CSRF-TOKEN");
+        
+        // Set max age for preflight requests (1 hour)
+        config.setMaxAge(3600L);
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 

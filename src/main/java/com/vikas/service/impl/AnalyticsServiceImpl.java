@@ -28,9 +28,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final ContributionsRepository repository;
     private final SuggestedUserRepository userRepository;
 
-    //
-    //
-    //	// TODO: Make changes so that user can define the time for which he wants to get the data.
     @Override
     @Transactional
     public Contribution getContributions(String username, String mode) {
