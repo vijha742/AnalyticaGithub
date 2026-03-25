@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,6 +96,7 @@ public class UserController {
     }
 
     @PostMapping("/team")
+    @PreAuthorize("@resourceAccessService.canCreateTeam(authentication)")
     public ResponseEntity<List<String>> createTeam(
             @RequestParam 
             @NotBlank(message = "Team name cannot be blank") 
@@ -109,6 +111,7 @@ public class UserController {
     }
 
     @DeleteMapping("/team")
+    @PreAuthorize("@resourceAccessService.canDeleteTeam(authentication, #teamName)")
     public ResponseEntity<List<String>> deleteTeam(
             @RequestParam 
             @NotBlank(message = "Team name cannot be blank") 

@@ -8,6 +8,7 @@ import com.vikas.repository.UserRepository;
 import jakarta.transaction.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
+@Slf4j
 @Service
 @Transactional
 public class PeerMatchingService {
@@ -36,7 +38,11 @@ public class PeerMatchingService {
         for (LanguageExpertise val : langProfile) {
             total += val.getLinesOfCode();
         }
-        // HACK: Leaving the logic here if the total is 0. Need to complete it.
+        if (total == 0) {
+            log.warn("Skipping language normalization for user {} because total lines of code is zero",
+                    user.getGithubUsername());
+            return langMap;
+        }
         for (LanguageExpertise languageExpertise : langProfile) {
             langMap.put(
                     languageExpertise.getLanguage(),

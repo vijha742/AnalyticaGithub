@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -76,6 +77,7 @@ public class SuggestedUserController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("@resourceAccessService.canDeactivateSuggestedUser(authentication, #id)")
     public ResponseEntity<Void> deactivateUser(@PathVariable UUID id) {
         log.debug("Deactivating suggested user with ID: {}", id);
         boolean response = suggestedUserService.deactivateUser(id);
