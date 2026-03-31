@@ -23,6 +23,9 @@ public class User {
     private UUID id;
 
     @Column(unique = true, nullable = false)
+    private Long githubId; // Immutable GitHub user ID
+
+    @Column(unique = true, nullable = false)
     private String githubUsername;
 
     @Column(nullable = false)

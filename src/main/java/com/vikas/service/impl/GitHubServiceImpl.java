@@ -56,6 +56,7 @@ public class GitHubServiceImpl implements GitHubService {
                 .orElseGet(
                         () -> {
                             User newUser = new User();
+                            newUser.setGithubId(githubUser.getId());
                             newUser.setGithubUsername(githubUser.getUserName());
                             newUser.setName(githubUser.getName());
                             newUser.setEmail(githubUser.getEmail());
@@ -235,6 +236,7 @@ public class GitHubServiceImpl implements GitHubService {
     // way to
     // implement it, which I need to do later.
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<String> deleteTeam(String team) {
         User authenticatedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = authenticatedUser.getGithubUsername();

@@ -96,12 +96,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException("Invalid GitHub token or failed to verify with GitHub.", e);
         }
 
-        if (!verifiedGithubUser.getName().equals(request.getUserObject().getName())) {
+        if (!verifiedGithubUser.getId().equals(Long.parseLong(request.getUserObject().getGithubId()))) {
             log.error(
-                    "Mismatch between frontend GitHub UserName ({}) and verified GitHub UserName"
+                    "Mismatch between frontend GitHub User ID ({}) and verified GitHub User ID"
                             + " ({})",
-                    request.getUserObject().getName(),
-                    verifiedGithubUser.getName());
+                    request.getUserObject().getGithubId(),
+                    verifiedGithubUser.getId());
             throw new AuthException("GitHub user ID mismatch. Potential tampering detected.");
         }
 

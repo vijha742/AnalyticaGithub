@@ -11,6 +11,7 @@ import lombok.Data;
 @Data
 public class AuthDTO {
 
+    private Long id; // GitHub user ID - immutable
     @JsonProperty("login")
     private String userName;
     private String name;
