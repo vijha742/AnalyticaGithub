@@ -29,6 +29,7 @@ public class SuggestedUserController {
     private final SuggestedUserService suggestedUserService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SuggestedUser> suggestUser(
             @RequestParam 
             @NotBlank(message = "GitHub username cannot be blank")
@@ -43,6 +44,7 @@ public class SuggestedUserController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<SuggestedUser>> getActiveSuggestedUsers(
             @RequestParam 
             @NotBlank(message = "Team name cannot be blank")
@@ -58,6 +60,7 @@ public class SuggestedUserController {
     }
 
     @PostMapping("/refresh")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SuggestedUser> refreshUser(
             @RequestParam 
             @NotBlank(message = "GitHub username cannot be blank")
