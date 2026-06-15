@@ -9,6 +9,8 @@ public interface JWTService {
 
     String extractUsername(String token);
 
+    String extractUserId(String token);
+
     <T> T extractClaim(String token, Function<Claims, T> claimsResolver);
 
     String generateToken(User userDetails);
@@ -16,7 +18,5 @@ public interface JWTService {
     String generateToken(Map<String, Object> extraClaims, User userDetails);
 
     String generateRefreshToken(User userDetails);
-
-    boolean isTokenValid(String token, User userDetails);
 
 }

@@ -67,6 +67,13 @@ public class User {
     @Column(name = "last_updated")
     private Instant lastUpdated;
 
+    @JsonIgnore
+    @Column(name = "refresh_token", unique = true)
+    private String refreshToken;
+
+    @Column(name = "refresh_token_expires_at")
+    private Instant refreshTokenExpiresAt;
+
     @PrePersist
     @PreUpdate
     protected void onUpdate() {

@@ -49,6 +49,11 @@ public class JWTServiceImpl implements JWTService {
     }
 
     @Override
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+
+    @Override
     public String generateToken(User userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
@@ -68,6 +73,7 @@ public class JWTServiceImpl implements JWTService {
             return Jwts.builder()
                     .claims(extraClaims)
                     .subject(userDetails.getGithubUsername())
+                    .claim("userId", userDetails.getId().toString())
                     .issuedAt(new Date(System.currentTimeMillis()))
                     .expiration(new Date(System.currentTimeMillis() + expiration))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -75,18 +81,6 @@ public class JWTServiceImpl implements JWTService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate JWT token", e);
         }
-    }
-
-    @Override
-    public boolean isTokenValid(String token, User userDetails) {
-        if (!isTokenExpired(token)) {
-            try {
-                final String username = extractUsername(token);
-                return (username.equals(userDetails.getGithubUsername())) && !isTokenExpired(token);
-            } catch (Exception e) {
-                return false;
-            }
-        } else return false;
     }
 
     private boolean isTokenExpired(String token) {

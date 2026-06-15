@@ -5,6 +5,7 @@ import com.vikas.dto.AuthResponse;
 import com.vikas.dto.SocialLoginRequest;
 import com.vikas.exception.AuthException;
 import com.vikas.model.User;
+import com.vikas.repository.UserRepository;
 import com.vikas.service.AuthService;
 import com.vikas.service.GitHubService;
 import com.vikas.service.JWTService;
@@ -12,6 +13,7 @@ import com.vikas.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -33,9 +36,18 @@ import java.util.List;
 public class AuthServiceImpl implements AuthService {
 
     private static final String GITHUB_USER_API_URL = "https://api.github.com/user";
+
     private final RestTemplate restTemplate;
     private final JWTService jwtService;
     private final GitHubService gitHubService;
+    private final UserRepository userRepository;
+
+    @Value("${jwt.refresh.expiration.ms}")
+    private long refreshExpiration;
+
+    // -------------------------------------------------------------------------
+    // GitHub token validation
+    // -------------------------------------------------------------------------
 
     @Override
     public AuthDTO validate(String githubAccessToken) {
@@ -79,6 +91,10 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Sign-in: validate GitHub token → issue JWT + refresh token
+    // -------------------------------------------------------------------------
+
     @Override
     public AuthResponse authenticate(SocialLoginRequest request) throws AuthException {
         if (request.getGithubToken() == null || request.getGithubToken().isEmpty()) {
@@ -96,10 +112,10 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException("Invalid GitHub token or failed to verify with GitHub.", e);
         }
 
+        // Guard against a frontend sending mismatched identity
         if (!verifiedGithubUser.getId().equals(Long.parseLong(request.getUserObject().getGithubId()))) {
             log.error(
-                    "Mismatch between frontend GitHub User ID ({}) and verified GitHub User ID"
-                            + " ({})",
+                    "Mismatch between frontend GitHub User ID ({}) and verified GitHub User ID ({})",
                     request.getUserObject().getGithubId(),
                     verifiedGithubUser.getId());
             throw new AuthException("GitHub user ID mismatch. Potential tampering detected.");
@@ -107,17 +123,19 @@ public class AuthServiceImpl implements AuthService {
 
         User user = gitHubService.findOrCreateUser(verifiedGithubUser);
 
-        String jwtToken = jwtService.generateToken(user);
+        String jwtToken     = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
-        // This code creates a UsernamePasswordAuthenticationToken for the authenticated
-        // user and sets it in the Spring Security context. This step is needed to mark
-        // the user as authenticated for the current request, allowing Spring Security
-        // to recognize the user and apply authorization rules. Without this, the user
-        // would not be considered logged in by the application, and protected endpoints
-        // would not be accessible.
+
+        // Persist the refresh token so we can revoke it and detect replay on rotation
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiresAt(Instant.now().plusMillis(refreshExpiration));
+        userRepository.save(user);
+
+        // Mark the request as authenticated for the current Spring Security context
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
         return AuthResponse.builder()
                 .jwtToken(jwtToken)
                 .refreshToken(refreshToken)
@@ -126,24 +144,44 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    // -------------------------------------------------------------------------
+    // Token refresh: DB lookup → validate expiry → rotate refresh token
+    // -------------------------------------------------------------------------
+
     @Override
     public AuthResponse refreshAccessToken(String refreshToken) throws AuthException {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AuthException("Refresh token is missing.");
         }
-        final String username = jwtService.extractUsername(refreshToken);
-        if (username != null) {
 
-            User userDetails = gitHubService.findUser(username);
-            if (jwtService.isTokenValid(refreshToken, userDetails)) {
-                String newJwtToken = jwtService.generateToken(userDetails);
-                return AuthResponse.builder()
-                        .jwtToken(newJwtToken)
-                        .refreshToken(refreshToken)
-                        .message("Access token refreshed successfully")
-                        .build();
-            }
+        // Look up by stored token value — this is what gives us revocation.
+        // If the token was invalidated (logged out, rotated away), it won't be
+        // in the DB and we reject immediately without parsing the JWT.
+        User user = userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new AuthException("Invalid or revoked refresh token."));
+
+        // Belt-and-suspenders: also check the expiry timestamp we stored
+        if (user.getRefreshTokenExpiresAt() == null
+                || user.getRefreshTokenExpiresAt().isBefore(Instant.now())) {
+            // Clear stale token to keep DB clean
+            user.setRefreshToken(null);
+            user.setRefreshTokenExpiresAt(null);
+            userRepository.save(user);
+            throw new AuthException("Refresh token has expired. Please sign in again.");
         }
-        throw new AuthException("Invalid or expired refresh token.");
+
+        // Rotate the refresh token — old token is invalidated immediately
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+        user.setRefreshToken(newRefreshToken);
+        user.setRefreshTokenExpiresAt(Instant.now().plusMillis(refreshExpiration));
+        userRepository.save(user);
+
+        String newJwtToken = jwtService.generateToken(user);
+
+        return AuthResponse.builder()
+                .jwtToken(newJwtToken)
+                .refreshToken(newRefreshToken)
+                .message("Access token refreshed successfully")
+                .build();
     }
 }

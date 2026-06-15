@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByGithubUsername(String githubUsername);
 
+    Optional<User> findByRefreshToken(String refreshToken);
+
     List<User> findTop10ByOrderByTotalContributionsDesc();
 
     List<User> findAll();
