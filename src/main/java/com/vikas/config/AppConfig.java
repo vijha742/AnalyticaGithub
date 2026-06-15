@@ -61,7 +61,6 @@ public class AppConfig {
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Accept");
         config.addAllowedHeader("X-Requested-With");
-        config.addAllowedHeader("X-CSRF-TOKEN");
         
         // Explicitly define allowed methods instead of wildcard
         config.addAllowedMethod("GET");
@@ -70,9 +69,8 @@ public class AppConfig {
         config.addAllowedMethod("DELETE");
         config.addAllowedMethod("OPTIONS");
         
-        // Expose headers that the frontend may need
+        // Expose the Authorization header so the frontend can read issued tokens
         config.addExposedHeader("Authorization");
-        config.addExposedHeader("X-CSRF-TOKEN");
         
         // Set max age for preflight requests (1 hour)
         config.setMaxAge(3600L);
